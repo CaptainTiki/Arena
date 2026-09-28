@@ -1,8 +1,11 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://hud/hud.tscn" id="3_hud"]
+[ext_resource type="Script" path="res://combat/scene_pool.gd" id="4_pool"]
+[ext_resource type="PackedScene" path="res://combat/impact_marker.tscn" id="5_marker"]
+[ext_resource type="PackedScene" path="res://combat/target_dummy.tscn" id="6_dummy"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -119,6 +122,26 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 12)
 use_collision = true
 size = Vector3(3, 6, 3)
 material = SubResource("StandardMaterial3D_pillar")
+
+[node name="ImpactPool" type="Node" parent="."]
+script = ExtResource("4_pool")
+scene = ExtResource("5_marker")
+size = 24
+recycle_oldest = true
+
+[node name="TargetDummies" type="Node3D" parent="."]
+
+[node name="DummyNear" parent="TargetDummies" instance=ExtResource("6_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -8)
+
+[node name="DummyMid" parent="TargetDummies" instance=ExtResource("6_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -15)
+
+[node name="DummyFar" parent="TargetDummies" instance=ExtResource("6_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -24)
+
+[node name="DummySide" parent="TargetDummies" instance=ExtResource("6_dummy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -3)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

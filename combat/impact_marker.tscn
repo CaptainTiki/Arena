@@ -1,0 +1,16 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://combat/impact_marker.gd" id="1_marker"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_marker"]
+size = Vector3(0.14, 0.14, 0.14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_marker"]
+resource_local_to_scene = true
+shading_mode = 0
+
+[node name="ImpactMarker" type="MeshInstance3D"]
+cast_shadow = 0
+mesh = SubResource("BoxMesh_marker")
+material_override = SubResource("StandardMaterial3D_marker")
+script = ExtResource("1_marker")

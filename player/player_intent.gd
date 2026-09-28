@@ -4,6 +4,8 @@ extends Node
 
 var _look_accum: Vector2 = Vector2.ZERO
 var _dash_queued: bool = false
+var _fire_queued: bool = false
+var _reload_queued: bool = false
 
 
 func _ready() -> void:
@@ -24,6 +26,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_look_accum += (event as InputEventMouseMotion).screen_relative
 	elif event.is_action_pressed(&"dash"):
 		_dash_queued = true
+	elif event.is_action_pressed(&"fire"):
+		_fire_queued = true
+	elif event.is_action_pressed(&"reload"):
+		_reload_queued = true
 
 
 ## False while the mouse is released; all intents read as idle.
@@ -51,4 +57,16 @@ func consume_look() -> Vector2:
 func consume_dash() -> bool:
 	var queued: bool = _dash_queued
 	_dash_queued = false
+	return queued
+
+
+func consume_fire() -> bool:
+	var queued: bool = _fire_queued
+	_fire_queued = false
+	return queued
+
+
+func consume_reload() -> bool:
+	var queued: bool = _reload_queued
+	_reload_queued = false
 	return queued

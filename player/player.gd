@@ -11,6 +11,7 @@ var _dash_direction: Vector3 = Vector3.ZERO
 @onready var _intent: PlayerIntent = $Intent
 @onready var _head: Node3D = $Head
 @onready var _camera: Camera3D = $Head/Camera3D
+@onready var _weapon: Weapon = $Head/Camera3D/Weapon
 
 
 func _ready() -> void:
@@ -42,6 +43,15 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 
 	move_and_slide()
+
+	if _intent.consume_reload():
+		_weapon.try_reload()
+	if _intent.consume_fire():
+		_weapon.try_fire()
+
+
+func get_weapon() -> Weapon:
+	return _weapon
 
 
 func is_dashing() -> bool:
