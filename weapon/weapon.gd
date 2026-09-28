@@ -4,6 +4,8 @@ extends Node3D
 
 ## `hit` is null when the shot struck nothing at all.
 signal shot_fired(hit: HitInfo)
+## Aim kick in radians: x is yaw, y is pitch (up positive).
+signal recoiled(kick: Vector2)
 signal dry_fired
 signal ammo_changed(mag: int, reserve: int)
 signal reload_started
@@ -12,6 +14,9 @@ signal reload_finished
 @export var data: WeaponData
 @export var wielder: CollisionObject3D
 @export_flags_3d_physics var hit_mask: int = 21
+
+## Debug aid: reloads never drain the reserve.
+var infinite_reserve: bool = false
 
 var _stats: WeaponData
 var _mag: int = 0
@@ -59,10 +64,15 @@ func try_fire() -> void:
 	_kick = 1.0
 	ammo_changed.emit(_mag, _reserve)
 	shot_fired.emit(_resolve_shot())
+	recoiled.emit(Vector2(
+			deg_to_rad(randf_range(-_stats.recoil_yaw_degrees, _stats.recoil_yaw_degrees)),
+			deg_to_rad(_stats.recoil_pitch_degrees)))
 
 
 func try_reload() -> void:
-	if is_reloading() or _mag >= _stats.mag_size or _reserve <= 0:
+	if is_reloading() or _mag >= _stats.mag_size:
+		return
+	if _reserve <= 0 and not infinite_reserve:
 		return
 	_reload_left = _stats.reload_time
 	reload_started.emit()
@@ -84,6 +94,10 @@ func get_reload_progress() -> float:
 	return 1.0 - _reload_left / _stats.reload_time
 
 
+func get_stats() -> WeaponData:
+	return _stats
+
+
 func get_mag() -> int:
 	return _mag
 
@@ -98,9 +112,12 @@ func get_reserve() -> int:
 
 func _finish_reload() -> void:
 	_reload_left = 0.0
-	var loaded: int = mini(_stats.mag_size - _mag, _reserve)
-	_mag += loaded
-	_reserve -= loaded
+	if infinite_reserve:
+		_mag = _stats.mag_size
+	else:
+		var loaded: int = mini(_stats.mag_size - _mag, _reserve)
+		_mag += loaded
+		_reserve -= loaded
 	ammo_changed.emit(_mag, _reserve)
 	reload_finished.emit()
 

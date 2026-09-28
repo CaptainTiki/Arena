@@ -9,9 +9,17 @@ extends CanvasLayer
 @export var hit_marker_time: float = 0.12
 @export var hit_marker_scale: float = 3.0
 
+@export var damage_flash_alpha: float = 0.35
+@export var damage_flash_time: float = 0.3
+
 var _status_text: String = ""
 var _status_tween: Tween
 var _crosshair_tween: Tween
+var _damage_tween: Tween
+
+@onready var _health_bar: ProgressBar = $HealthBar
+@onready var _damage_flash: ColorRect = $DamageFlash
+@onready var _stats_label: Label = $StatsLabel
 
 @onready var _dash_bar: ProgressBar = $DashBar
 @onready var _crosshair: ColorRect = $Crosshair
@@ -29,11 +37,31 @@ func set_dash_charge(charge: float) -> void:
 	_dash_bar.value = charge
 
 
+func set_health(health: float, max_health: float) -> void:
+	_health_bar.value = health / max_health
+
+
+func flash_damage() -> void:
+	if _damage_tween != null:
+		_damage_tween.kill()
+	_damage_flash.color.a = damage_flash_alpha
+	_damage_tween = create_tween()
+	_damage_tween.tween_property(_damage_flash, ^"color:a", 0.0, damage_flash_time)
+
+
+func set_stats(kills: int, alive: int, elapsed: float) -> void:
+	var seconds: int = int(elapsed)
+	@warning_ignore("integer_division")
+	var minutes: int = seconds / 60
+	_stats_label.text = "%02d:%02d   KILLS %d   ALIVE %d" % [minutes, seconds % 60, kills, alive]
+
+
+## Pass a negative reserve to show it as infinite.
 func set_ammo(mag: int, mag_size: int, reserve: int) -> void:
-	_ammo_label.text = "%d / %d" % [mag, reserve]
+	_ammo_label.text = "%d / INF" % mag if reserve < 0 else "%d / %d" % [mag, reserve]
 	if mag <= 0:
 		_ammo_label.modulate = ammo_empty_color
-		_status_text = "NO AMMO" if reserve <= 0 else "EMPTY - RELOAD [R]"
+		_status_text = "NO AMMO" if reserve == 0 else "EMPTY - RELOAD [R]"
 	else:
 		_ammo_label.modulate = ammo_low_color if mag * 3 <= mag_size else ammo_ok_color
 		_status_text = ""

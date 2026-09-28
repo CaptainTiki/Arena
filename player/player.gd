@@ -1,12 +1,21 @@
 class_name Player
 extends CharacterBody3D
 
+signal health_changed(health: float, max_health: float)
+signal damaged(hit: HitInfo)
+signal died
+
 @export var data: PlayerData
 
+var _health: float = 0.0
+var _base_mask: int = 0
 var _pitch: float = 0.0
 var _dash_time_left: float = 0.0
 var _dash_cooldown_left: float = 0.0
 var _dash_direction: Vector3 = Vector3.ZERO
+## Aim offset from recoil, radians: x is yaw, y is pitch.
+var _recoil: Vector2 = Vector2.ZERO
+var _recoil_target: Vector2 = Vector2.ZERO
 
 @onready var _intent: PlayerIntent = $Intent
 @onready var _head: Node3D = $Head
@@ -16,10 +25,14 @@ var _dash_direction: Vector3 = Vector3.ZERO
 
 func _ready() -> void:
 	_camera.fov = data.base_fov
+	_health = data.max_health
+	_base_mask = collision_mask
+	_weapon.recoiled.connect(_on_weapon_recoiled)
 
 
 func _process(delta: float) -> void:
 	_apply_look()
+	_update_recoil(delta)
 	_update_fov(delta)
 
 
@@ -36,6 +49,7 @@ func _physics_process(delta: float) -> void:
 		velocity.z = _dash_direction.z * data.dash_speed
 	else:
 		_apply_ground_movement(wish_direction, delta)
+	collision_mask = _base_mask & ~data.dash_ignore_mask if is_dashing() else _base_mask
 
 	if is_on_floor():
 		velocity.y = 0.0
@@ -50,8 +64,22 @@ func _physics_process(delta: float) -> void:
 		_weapon.try_fire()
 
 
+func take_hit(hit: HitInfo) -> void:
+	if is_invulnerable() or _health <= 0.0:
+		return
+	_health = maxf(_health - hit.damage, 0.0)
+	damaged.emit(hit)
+	health_changed.emit(_health, data.max_health)
+	if _health <= 0.0:
+		died.emit()
+
+
 func get_weapon() -> Weapon:
 	return _weapon
+
+
+func get_health() -> float:
+	return _health
 
 
 func is_dashing() -> bool:
@@ -102,7 +130,19 @@ func _apply_look() -> void:
 	rotate_y(-look.x * data.mouse_sensitivity)
 	var max_pitch: float = deg_to_rad(data.max_pitch_degrees)
 	_pitch = clampf(_pitch - look.y * data.mouse_sensitivity, -max_pitch, max_pitch)
-	_head.rotation.x = _pitch
+
+
+func _update_recoil(delta: float) -> void:
+	var stats: WeaponData = _weapon.get_stats()
+	_recoil_target = _recoil_target.lerp(Vector2.ZERO, 1.0 - exp(-stats.recoil_recover_speed * delta))
+	_recoil = _recoil.lerp(_recoil_target, 1.0 - exp(-stats.recoil_snap_speed * delta))
+	var max_pitch: float = deg_to_rad(data.max_pitch_degrees)
+	_head.rotation.x = clampf(_pitch + _recoil.y, -max_pitch, max_pitch)
+	_head.rotation.y = _recoil.x
+
+
+func _on_weapon_recoiled(kick: Vector2) -> void:
+	_recoil_target += kick
 
 
 func _update_fov(delta: float) -> void:

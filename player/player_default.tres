@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_data")
+max_health = 100.0
 walk_speed = 7.0
 sprint_speed = 11.0
 acceleration = 70.0
@@ -11,6 +12,7 @@ deceleration = 55.0
 dash_speed = 28.0
 dash_duration = 0.18
 dash_cooldown = 1.2
+dash_ignore_mask = 4
 mouse_sensitivity = 0.0022
 max_pitch_degrees = 89.0
 base_fov = 90.0

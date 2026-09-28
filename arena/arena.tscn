@@ -1,11 +1,17 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=22 format=3]
 
 [ext_resource type="Script" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://hud/hud.tscn" id="3_hud"]
 [ext_resource type="Script" path="res://combat/scene_pool.gd" id="4_pool"]
 [ext_resource type="PackedScene" path="res://combat/impact_marker.tscn" id="5_marker"]
-[ext_resource type="PackedScene" path="res://combat/target_dummy.tscn" id="6_dummy"]
+[ext_resource type="PackedScene" path="res://enemy/enemy.tscn" id="6_enemy"]
+[ext_resource type="Script" path="res://spawn/spawner.gd" id="7_spawner"]
+[ext_resource type="Script" path="res://spawn/spawn_wave.gd" id="8_wave"]
+[ext_resource type="Resource" path="res://spawn/wave_1_warmup.tres" id="9_wave1"]
+[ext_resource type="Resource" path="res://spawn/wave_2_build.tres" id="10_wave2"]
+[ext_resource type="Resource" path="res://spawn/wave_3_horde.tres" id="11_wave3"]
+[ext_resource type="Resource" path="res://spawn/wave_4_endgame.tres" id="12_wave4"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -129,19 +135,40 @@ scene = ExtResource("5_marker")
 size = 24
 recycle_oldest = true
 
-[node name="TargetDummies" type="Node3D" parent="."]
+[node name="Spawner" type="Node3D" parent="."]
+script = ExtResource("7_spawner")
+waves = Array[ExtResource("8_wave")]([ExtResource("9_wave1"), ExtResource("10_wave2"), ExtResource("11_wave3"), ExtResource("12_wave4")])
 
-[node name="DummyNear" parent="TargetDummies" instance=ExtResource("6_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, -8)
+[node name="Pool" type="Node" parent="Spawner"]
+script = ExtResource("4_pool")
+scene = ExtResource("6_enemy")
+size = 64
 
-[node name="DummyMid" parent="TargetDummies" instance=ExtResource("6_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, -15)
+[node name="SpawnPoints" type="Node3D" parent="Spawner"]
 
-[node name="DummyFar" parent="TargetDummies" instance=ExtResource("6_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -24)
+[node name="NorthWest" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, -26)
 
-[node name="DummySide" parent="TargetDummies" instance=ExtResource("6_dummy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 13, 0, -3)
+[node name="North" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -26)
+
+[node name="NorthEast" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, -26)
+
+[node name="East" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 0)
+
+[node name="SouthEast" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0, 26)
+
+[node name="South" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 26)
+
+[node name="SouthWest" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 26)
+
+[node name="West" type="Marker3D" parent="Spawner/SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -16, 0, 0)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 

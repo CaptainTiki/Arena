@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SpawnWave" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://spawn/spawn_wave.gd" id="1_wave"]
+
+[resource]
+script = ExtResource("1_wave")
+duration = 60.0
+alive_at_start = 3
+alive_at_end = 8
+spawn_interval = 1.5
+batch_size = 1

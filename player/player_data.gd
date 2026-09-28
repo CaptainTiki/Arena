@@ -1,6 +1,9 @@
 class_name PlayerData
 extends Resource
 
+@export_group("Health")
+@export var max_health: float = 100.0
+
 @export_group("Movement")
 @export var walk_speed: float = 7.0
 @export var sprint_speed: float = 11.0
@@ -11,6 +14,8 @@ extends Resource
 @export var dash_speed: float = 28.0
 @export var dash_duration: float = 0.18
 @export var dash_cooldown: float = 1.2
+## Physics layers the player passes through while dashing.
+@export_flags_3d_physics var dash_ignore_mask: int = 4
 
 @export_group("Look")
 ## Radians of rotation per pixel of mouse travel.

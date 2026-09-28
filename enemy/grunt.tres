@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://enemy/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+max_health = 30.0
+move_speed = 4.5
+acceleration = 30.0
+attack_range = 1.5
+attack_reach = 2.0
+attack_windup = 0.45
+attack_recover = 0.7
+attack_damage = 10.0
+body_color = Color(0.7, 0.15, 0.15, 1)
+hit_flash_color = Color(1, 1, 1, 1)
+windup_color = Color(1, 0.55, 0, 1)
+flash_fade_speed = 10.0
+pop_scale = 1.7
+pop_time = 0.12
