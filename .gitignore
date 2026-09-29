@@ -1,3 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
+
+# Playtest event logs, read once and thrown away
+.logs/
 /android/

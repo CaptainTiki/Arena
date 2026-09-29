@@ -4,6 +4,7 @@ extends Node3D
 ## or a roster (named groups that arrive on a schedule, and early if the floor is cleared).
 
 signal enemy_died(enemy: Enemy, hit: HitInfo)
+signal enemy_acted(enemy: Enemy, action: StringName)
 
 ## Spawn points closer to the target than this are skipped when any other is available.
 @export var min_spawn_distance: float = 20.0
@@ -26,6 +27,7 @@ var _stagger_left: float = 0.0
 var _clear_time: float = 0.0
 var _elapsed: float = 0.0
 var _spawn_timer: float = 0.0
+var _next_id: int = 0
 var _spawn_points: Array[Marker3D] = []
 ## Every enemy pool, in the order ramp weights refer to them.
 var _pools: Array[ScenePool] = []
@@ -45,6 +47,7 @@ func _ready() -> void:
 			var enemy: Enemy = child as Enemy
 			enemy.died.connect(_on_enemy_died)
 			enemy.projectile_fired.connect(_on_enemy_projectile_fired)
+			enemy.acted.connect(_on_enemy_acted)
 
 
 func start_ramp(waves: Array[SpawnWave]) -> void:
@@ -86,6 +89,16 @@ func get_alive_count() -> int:
 	var alive: int = 0
 	for pool: ScenePool in _pools:
 		alive += pool.get_active_count()
+	return alive
+
+
+func get_alive_enemies() -> Array[Enemy]:
+	var alive: Array[Enemy] = []
+	for pool: ScenePool in _pools:
+		for node: Node in pool.get_active():
+			var enemy: Enemy = node as Enemy
+			if enemy.is_alive():
+				alive.append(enemy)
 	return alive
 
 
@@ -182,6 +195,8 @@ func _get_current_ramp_wave() -> SpawnWave:
 
 func _place(enemy: Enemy) -> void:
 	var jitter: Vector3 = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * spawn_jitter
+	_next_id += 1
+	enemy.id = _next_id
 	enemy.spawn(_pick_spawn_point().global_position + jitter, target, health_scale, damage_scale)
 
 
@@ -210,6 +225,10 @@ func _pick_spawn_point() -> Marker3D:
 
 func _on_enemy_died(enemy: Enemy, hit: HitInfo) -> void:
 	enemy_died.emit(enemy, hit)
+
+
+func _on_enemy_acted(enemy: Enemy, action: StringName) -> void:
+	enemy_acted.emit(enemy, action)
 
 
 func _on_enemy_projectile_fired(enemy: Enemy, origin: Vector3, shot_velocity: Vector3) -> void:

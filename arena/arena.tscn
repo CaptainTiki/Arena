@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=33 format=3]
 
 [ext_resource type="Script" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -30,6 +30,7 @@
 [ext_resource type="Resource" path="res://sponsor/warden.tres" id="28_warden"]
 [ext_resource type="Resource" path="res://run/run_default.tres" id="29_run"]
 [ext_resource type="PackedScene" path="res://hud/run_summary.tscn" id="30_summary"]
+[ext_resource type="Script" path="res://run/run_log.gd" id="31_log"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -54,6 +55,9 @@ environment = SubResource("Environment_arena")
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
 shadow_enabled = true
 directional_shadow_max_distance = 140.0
+
+[node name="RunLog" type="Node" parent="."]
+script = ExtResource("31_log")
 
 [node name="Level" parent="." instance=ExtResource("16_level")]
 

@@ -7,6 +7,8 @@ signal released
 signal died(enemy: Enemy, hit: HitInfo)
 ## The owner turns this into a projectile.
 signal projectile_fired(enemy: Enemy, origin: Vector3, shot_velocity: Vector3)
+## Reported for the run log: &"spawn", &"windup" and &"attack".
+signal acted(enemy: Enemy, action: StringName)
 
 enum State { CHASE, WINDUP, LUNGE, RECOVER, DYING }
 ## What the current windup is building toward.
@@ -16,6 +18,9 @@ enum Attack { LUNGE, CHARGE, SLAM, SHOT }
 @export_flags_3d_physics var sight_mask: int = 1
 ## Layers a charge ploughs through, so a crowd of grunts can't stop it.
 @export_flags_3d_physics var charge_ignore_mask: int = 4
+
+## Set by the spawner, counting up through the run, so one enemy can be followed through the log.
+var id: int = 0
 
 var _target: Node3D
 var _state: State = State.CHASE
@@ -77,10 +82,29 @@ func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale:
 	_material.albedo_color = data.body_color
 	if _arms != null:
 		_arms.rotation.x = 0.0
+	acted.emit(self, &"spawn")
 
 
 func is_alive() -> bool:
 	return _state != State.DYING
+
+
+func get_health() -> float:
+	return maxf(_health, 0.0)
+
+
+## "grunt", "heavy" or "shooter": the name of the data file.
+func get_type_name() -> String:
+	return data.resource_path.get_file().get_basename()
+
+
+func get_state_name() -> String:
+	return State.keys()[_state]
+
+
+## The attack it is winding up, making, or made last.
+func get_attack_name() -> String:
+	return Attack.keys()[_attack]
 
 
 ## Damage of one lunge or projectile, after the contract's scaling.
@@ -113,6 +137,7 @@ func _physics_process(delta: float) -> void:
 			wish_velocity = _get_chase_velocity(delta)
 			if _pick_attack():
 				_enter(State.WINDUP, _get_windup_time())
+				acted.emit(self, &"windup")
 		State.WINDUP:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -192,6 +217,7 @@ func _get_windup_time() -> float:
 
 
 func _finish_windup() -> void:
+	acted.emit(self, &"attack")
 	match _attack:
 		Attack.LUNGE:
 			_start_lunge()

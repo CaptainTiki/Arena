@@ -47,6 +47,10 @@ func get_active_count() -> int:
 	return _active.size()
 
 
+func get_active() -> Array[Node]:
+	return _active
+
+
 func _set_active(instance: Node, active: bool) -> void:
 	instance.process_mode = Node.PROCESS_MODE_INHERIT if active else Node.PROCESS_MODE_DISABLED
 	if instance is Node3D:

@@ -4,6 +4,9 @@ extends CharacterBody3D
 signal health_changed(health: float, max_health: float)
 signal damaged(hit: HitInfo)
 signal died
+signal dashed(direction: Vector3)
+## A hit the dash carried the player through.
+signal dodged(hit: HitInfo)
 
 @export var data: PlayerData
 
@@ -71,7 +74,10 @@ func _physics_process(delta: float) -> void:
 
 
 func take_hit(hit: HitInfo) -> void:
-	if is_invulnerable() or _health <= 0.0:
+	if _health <= 0.0:
+		return
+	if is_invulnerable():
+		dodged.emit(hit)
 		return
 	_health = maxf(_health - hit.damage, 0.0)
 	damaged.emit(hit)
@@ -107,6 +113,11 @@ func get_health() -> float:
 	return _health
 
 
+## Where the player is aiming, radians up from level. Recoil and shake not included.
+func get_pitch() -> float:
+	return _pitch
+
+
 func is_dashing() -> bool:
 	return _dash_time_left > 0.0
 
@@ -136,6 +147,7 @@ func _start_dash(wish_direction: Vector3) -> void:
 		_dash_direction = -global_basis.z
 	_dash_time_left = data.dash_duration
 	_dash_cooldown_left = data.dash_cooldown
+	dashed.emit(_dash_direction)
 
 
 func _apply_ground_movement(wish_direction: Vector3, delta: float) -> void:
