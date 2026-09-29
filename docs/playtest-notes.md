@@ -83,3 +83,21 @@ Built in response to the step 1 and step 2 arena notes. Not one of the kickoff d
 * **Heavy:** never gets close; easy to walk around. Needs more base speed and a way to close distance, such as an occasional charge when the player is beyond some range.
 * **Heavy health:** too much for the pistol alone. Too many shots for one kill.
 * **Changes made in response:** heavy speed 2.6 to 3.4 m/s, health 300 to 140, and a telegraphed straight-line charge when the player is 10 to 30 m away and visible, on a cooldown.
+
+## Step 7 — run summary, reputation stub, heavy rework (2026-09-28)
+
+* **Summary screen:** a lot of text, but readable for now. Trim when it gets a real design.
+* **Progression stub:** liked. Answer to question 6 (is meta-progression worth building): yes, the hook lands.
+* **Dash:** should be a dodge, not travel. Halve its velocity so it moves you less far. Changed dash speed 28 to 14 m/s (about 2.5 m per dash instead of 5).
+* No complaints recorded about the heavy's charge or its 140 health this round.
+
+## The six questions, as of 2026-09-28
+
+1. **Does first-person horde combat feel good?** Yes, but only once enemies could threaten a moving player. Straight-line chasers were trivially kited by backpedalling.
+2. **Does "shoot to earn shots" create tension?** Yes, liked. But accuracy cannot be the only source of ammo; the hold-zone sponsor was added as a second route.
+3. **Is the sponsor system readable?** Yes, because each meter states what the sponsor wants and shows reactions. It leans on text; the real game needs a place to read about sponsors between runs.
+4. **Does courting sponsors change how people play?** Yes. Chased ammo through accuracy and chained kills on purpose for the mag and fire-rate pods.
+5. **Does a flat arena get boring?** Yes, immediately. Levels, cover and a non-rectangular shape fixed the boredom; enemy variety (shooter, heavy) is what makes crossing it a decision. The real project needs designed or generated arenas, not a box.
+6. **Is meta-progression worth building?** Yes, the stub was liked.
+
+Still open: overall difficulty was called tough and possibly too harsh; tuning pass pending. Only one tester so far.

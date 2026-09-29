@@ -12,6 +12,8 @@ enum State { CHASE, WINDUP, LUNGE, RECOVER, DYING }
 
 @export var data: EnemyData
 @export_flags_3d_physics var sight_mask: int = 1
+## Layers a charge ploughs through, so a crowd of grunts can't stop it.
+@export_flags_3d_physics var charge_ignore_mask: int = 4
 
 var _target: Node3D
 var _state: State = State.CHASE
@@ -21,6 +23,7 @@ var _speed: float = 0.0
 var _lead_time: float = 0.0
 var _lead_accuracy: float = 0.0
 var _aura_left: float = 0.0
+var _charge_left: float = 0.0
 var _move_velocity: Vector3 = Vector3.ZERO
 var _knockback: Vector3 = Vector3.ZERO
 var _lunge_direction: Vector3 = Vector3.ZERO
@@ -56,6 +59,8 @@ func spawn(at: Vector3, target: Node3D) -> void:
 	_lead_time = randf_range(0.0, data.lead_time_max)
 	_lead_accuracy = randf_range(data.lead_accuracy_min, data.lead_accuracy_max)
 	_aura_left = data.aura_interval
+	# First charge comes partway into the cooldown, and not from every heavy at once.
+	_charge_left = data.charge_cooldown * randf_range(0.3, 0.6)
 	_move_velocity = Vector3.ZERO
 	_knockback = Vector3.ZERO
 	_path = PackedVector3Array()
@@ -110,10 +115,12 @@ func _physics_process(delta: float) -> void:
 			wish_velocity = _move_velocity
 			if not _lunge_connected and _get_target_distance() <= data.attack_reach and _is_target_level():
 				_lunge_connected = true
-				_strike(_lunge_direction)
-			if _state_left <= 0.0:
+				_strike(_lunge_direction, _get_lunge_damage())
+			# A charge that slams into a wall stops there.
+			if _state_left <= 0.0 or (is_on_wall() and data.attack_style == EnemyData.AttackStyle.AURA):
 				_move_velocity = Vector3.ZERO
 				wish_velocity = Vector3.ZERO
+				collision_mask = _body_mask
 				_enter(State.RECOVER, data.attack_recover)
 		State.RECOVER:
 			_state_left -= delta
@@ -125,6 +132,7 @@ func _physics_process(delta: float) -> void:
 
 	if data.attack_style == EnemyData.AttackStyle.AURA:
 		_tick_aura(delta)
+		_charge_left = maxf(_charge_left - delta, 0.0)
 
 	_move_velocity = _move_velocity.move_toward(wish_velocity, data.acceleration * delta)
 	_knockback = _knockback.move_toward(Vector3.ZERO, data.knockback_friction * delta)
@@ -157,6 +165,12 @@ func _should_attack() -> bool:
 	match data.attack_style:
 		EnemyData.AttackStyle.LUNGE:
 			return _get_target_distance() <= data.attack_range and _is_target_level()
+		EnemyData.AttackStyle.AURA:
+			if data.charge_cooldown <= 0.0 or _charge_left > 0.0:
+				return false
+			var gap: float = _get_target_distance()
+			return (gap >= data.charge_min_distance and gap <= data.charge_max_distance
+					and _is_target_level() and _is_ground_clear())
 		EnemyData.AttackStyle.RANGED:
 			# Too close means back off first; rushing a shooter shuts it down.
 			var distance: float = _get_target_distance()
@@ -170,10 +184,14 @@ func _finish_windup() -> void:
 			_lunge_direction = _get_direction_to(_target.global_position)
 			_lunge_connected = false
 			_enter(State.LUNGE, data.lunge_duration)
+		EnemyData.AttackStyle.AURA:
+			_charge_left = data.charge_cooldown
+			collision_mask = _body_mask & ~charge_ignore_mask
+			_lunge_direction = _get_direction_to(_target.global_position)
+			_lunge_connected = false
+			_enter(State.LUNGE, data.lunge_duration)
 		EnemyData.AttackStyle.RANGED:
 			_shoot()
-			_enter(State.RECOVER, data.attack_recover)
-		_:
 			_enter(State.RECOVER, data.attack_recover)
 
 
@@ -237,16 +255,30 @@ func _can_see_target() -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+## Like sight, but at shin height, so low cover that can be seen over still blocks a charge.
+func _is_ground_clear() -> bool:
+	var lift: Vector3 = Vector3.UP * 0.4
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+			global_position + lift, _target.global_position + lift, sight_mask)
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
 func _enter(state: State, duration: float) -> void:
 	_state = state
 	_state_left = duration
 
 
-func _strike(direction: Vector3) -> void:
+func _get_lunge_damage() -> float:
+	if data.attack_style == EnemyData.AttackStyle.AURA:
+		return data.charge_damage
+	return data.attack_damage
+
+
+func _strike(direction: Vector3, damage: float) -> void:
 	if not _target.has_method(&"take_hit"):
 		return
 	var hit: HitInfo = HitInfo.new()
-	hit.damage = data.attack_damage
+	hit.damage = damage
 	hit.position = _target.global_position
 	hit.direction = direction
 	hit.target = _target
@@ -268,7 +300,7 @@ func _tick_aura(delta: float) -> void:
 		return
 	_aura_left = data.aura_interval
 	if _get_target_distance() <= data.aura_radius and _is_target_level():
-		_strike(_get_direction_to(_target.global_position))
+		_strike(_get_direction_to(_target.global_position), data.attack_damage)
 
 
 func _update_feedback(delta: float) -> void:

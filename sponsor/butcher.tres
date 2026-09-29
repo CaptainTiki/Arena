@@ -18,3 +18,4 @@ score_per_event = 1.0
 minor_score = 0.0
 penalty = 0.0
 window = 3.0
+perk_teaser = "+1 starting mag size"

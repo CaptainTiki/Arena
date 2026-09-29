@@ -46,15 +46,24 @@ enum AttackStyle {
 @export var attack_height_tolerance: float = 1.5
 
 @export_group("Lunge")
+## Also the speed and length of an aura enemy's charge.
 @export var lunge_speed: float = 16.0
 @export var lunge_duration: float = 0.3
-## The lunge connects if it gets this close to the target.
+## The lunge or charge connects if it gets this close to the target.
 @export var attack_reach: float = 1.3
 
 @export_group("Aura")
 @export var aura_radius: float = 4.5
 ## Seconds between damage ticks while the target is inside the aura.
 @export var aura_interval: float = 0.5
+
+@export_group("Charge")
+## Aura enemies only. Seconds between charges; zero means it never charges.
+@export var charge_cooldown: float = 0.0
+## Charges only when the target is between these distances and in sight.
+@export var charge_min_distance: float = 10.0
+@export var charge_max_distance: float = 30.0
+@export var charge_damage: float = 25.0
 
 @export_group("Ranged")
 ## Stops advancing and starts shooting inside this distance, if it can see the target.

@@ -3,6 +3,9 @@ extends Node3D
 ## Top of the ownership spine. Children report up to here; Arena routes between them.
 
 @export var feel: FeelData
+@export var run: RunData
+## Where sponsor reputation is kept between runs.
+@export var reputation_path: String = "user://reputation.cfg"
 
 @export_group("Pity Drop")
 ## Dropped when the player has no ammo at all, so a run can't lock up.
@@ -16,7 +19,10 @@ extends Node3D
 ## Start the spawn ramp this many seconds in, to test late-run density.
 @export var debug_start_time: float = 0.0
 
-var _kills: int = 0
+var _stats: RunStats = RunStats.new()
+var _run_time: float = 0.0
+var _run_over: bool = false
+var _summary_wait: float = 0.0
 var _empty_time: float = 0.0
 var _hold_zones: Array[HoldZone] = []
 var _active_zone: int = 0
@@ -24,6 +30,7 @@ var _active_zone: int = 0
 @onready var _level: Level = $Level
 @onready var _player: Player = $Player
 @onready var _hud: Hud = $Hud
+@onready var _summary: RunSummary = $RunSummary
 @onready var _impact_pool: ScenePool = $ImpactPool
 @onready var _number_pool: ScenePool = $DamageNumberPool
 @onready var _hitstop: Hitstop = $Hitstop
@@ -31,6 +38,7 @@ var _active_zone: int = 0
 @onready var _sponsors: SponsorDirector = $SponsorDirector
 @onready var _pod_dropper: PodDropper = $PodDropper
 @onready var _weapon: Weapon = _player.get_weapon()
+@onready var _intent: PlayerIntent = _player.get_intent()
 
 
 func _ready() -> void:
@@ -62,25 +70,79 @@ func _ready() -> void:
 	_activate_zone(0)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _run_over:
+		_tick_summary(delta)
+		return
 	_hud.set_dash_charge(_player.get_dash_charge())
 	_hud.set_reload(_weapon.is_reloading(), _weapon.get_reload_progress())
-	_hud.set_stats(_kills, _spawner.get_alive_count(), _spawner.get_elapsed())
+	_hud.set_stats(_stats.kills, _spawner.get_alive_count(), _run_time)
 
 
 func _physics_process(delta: float) -> void:
+	if _run_over:
+		return
+	_run_time += delta
+	if _run_time >= run.run_length:
+		_end_run.call_deferred(true)
+		return
 	_tick_pity(delta)
 	if not _hold_zones.is_empty():
 		_sponsors.set_holding(_hold_zones[_active_zone].is_occupied())
 
 
-## Only one hold zone is live at a time.
-func _activate_zone(index: int) -> void:
-	if _hold_zones.is_empty():
+func is_run_over() -> bool:
+	return _run_over
+
+
+func _end_run(survived: bool) -> void:
+	if _run_over:
 		return
-	_active_zone = index % _hold_zones.size()
-	for zone_index: int in _hold_zones.size():
-		_hold_zones[zone_index].set_active(zone_index == _active_zone)
+	_run_over = true
+	_stats.time_survived = minf(_run_time, run.run_length)
+
+	var store: ReputationStore = ReputationStore.new(reputation_path)
+	var results: Array[SponsorResult] = []
+	for index: int in _sponsors.sponsors.size():
+		var result: SponsorResult = SponsorResult.new()
+		result.sponsor = _sponsors.sponsors[index]
+		result.drops = _sponsors.get_drop_count(index)
+		result.standing = _sponsors.get_progress(index)
+		result.reputation_before = store.get_reputation(result.sponsor)
+		result.reputation_after = result.reputation_before + _get_reputation_gain(result.drops)
+		store.set_reputation(result.sponsor, result.reputation_after)
+		results.append(result)
+	store.save()
+
+	# Freeze the world behind the summary. The intent keeps listening so the run can be restarted.
+	var frozen: Array[Node] = [_spawner, _sponsors, _pod_dropper, _player]
+	for node: Node in frozen:
+		node.process_mode = Node.PROCESS_MODE_DISABLED
+	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
+	_hud.visible = false
+	_summary_wait = run.summary_input_delay
+	_summary.show_summary(survived, _stats, results)
+
+
+func _get_reputation_gain(drops: int) -> int:
+	if drops <= 0 or run.drops_per_reputation <= 0:
+		return 0
+	return mini(ceili(float(drops) / float(run.drops_per_reputation)), run.max_reputation_gain)
+
+
+func _tick_summary(delta: float) -> void:
+	var was_waiting: bool = _summary_wait > 0.0
+	_summary_wait -= delta
+	# Read both every frame so neither press is left queued.
+	var fire: bool = _intent.consume_fire()
+	var reload: bool = _intent.consume_reload()
+	if _summary_wait > 0.0:
+		return
+	if was_waiting:
+		_summary.show_prompt()
+		return
+	if fire or reload:
+		get_tree().reload_current_scene()
 
 
 func _tick_pity(delta: float) -> void:
@@ -95,7 +157,17 @@ func _tick_pity(delta: float) -> void:
 		_hud.show_pickup("OUT OF AMMO - SCRAPS INCOMING", Color.WHITE)
 
 
+## Only one hold zone is live at a time.
+func _activate_zone(index: int) -> void:
+	if _hold_zones.is_empty():
+		return
+	_active_zone = index % _hold_zones.size()
+	for zone_index: int in _hold_zones.size():
+		_hold_zones[zone_index].set_active(zone_index == _active_zone)
+
+
 func _on_weapon_shot_fired(hit: HitInfo) -> void:
+	_stats.record_shot(hit)
 	_sponsors.on_shot(hit)
 	if hit == null:
 		return
@@ -122,12 +194,12 @@ func _on_player_damaged(hit: HitInfo) -> void:
 
 
 func _on_player_died() -> void:
-	# Stand-in until the run summary exists: death restarts the run.
-	get_tree().reload_current_scene.call_deferred()
+	# Deferred: this arrives mid-physics, from inside an enemy's attack.
+	_end_run.call_deferred(false)
 
 
 func _on_enemy_died(_enemy: Enemy, hit: HitInfo) -> void:
-	_kills += 1
+	_stats.kills += 1
 	_player.add_trauma(feel.trauma_per_kill)
 	var freeze: float = feel.hitstop_headshot_kill if hit.is_headshot else feel.hitstop_kill
 	_hitstop.trigger(freeze, feel.hitstop_time_scale)
@@ -150,6 +222,7 @@ func _on_pod_landed(pod: Pod) -> void:
 
 
 func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
+	_stats.pods_collected += 1
 	match pod_data.effect:
 		PodData.Effect.AMMO:
 			_weapon.add_reserve(roundi(pod_data.amount))

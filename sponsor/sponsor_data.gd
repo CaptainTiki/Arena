@@ -8,6 +8,8 @@ enum Trigger { HEADSHOTS, MULTIKILL, UNTOUCHED_STREAK, HOLD_ZONE }
 ## One line shown under the meter so the player knows what this sponsor wants.
 @export var wants: String = ""
 @export var trigger: Trigger = Trigger.HEADSHOTS
+## Shown on the run summary as what this sponsor's reputation will buy. Not implemented; tests the hook.
+@export var perk_teaser: String = ""
 
 @export_group("Drops")
 ## Score needed for the first drop.

@@ -1,0 +1,28 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://hud/summary_row.gd" id="1_row"]
+
+[node name="SummaryRow" type="Control"]
+custom_minimum_size = Vector2(1100, 70)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1100.0
+offset_bottom = 70.0
+mouse_filter = 2
+script = ExtResource("1_row")
+
+[node name="Headline" type="Label" parent="."]
+layout_mode = 0
+offset_right = 1100.0
+offset_bottom = 38.0
+theme_override_font_sizes/font_size = 28
+text = "THE SPONSOR   Reputation: 0 -> 0"
+
+[node name="Detail" type="Label" parent="."]
+modulate = Color(1, 1, 1, 0.75)
+layout_mode = 0
+offset_top = 40.0
+offset_right = 1100.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 17
+text = "detail"

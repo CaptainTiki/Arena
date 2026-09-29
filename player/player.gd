@@ -99,6 +99,10 @@ func get_weapon() -> Weapon:
 	return _weapon
 
 
+func get_intent() -> PlayerIntent:
+	return _intent
+
+
 func get_health() -> float:
 	return _health
 
