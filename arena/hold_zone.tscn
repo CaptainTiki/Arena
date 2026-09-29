@@ -1,0 +1,55 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://arena/hold_zone.gd" id="1_zone"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_zone"]
+resource_local_to_scene = true
+size = Vector3(12, 3, 8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+resource_local_to_scene = true
+size = Vector3(12, 0.04, 8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+resource_local_to_scene = true
+transparency = 1
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.2, 0.35)
+
+[sub_resource type="BoxMesh" id="BoxMesh_beacon"]
+size = Vector3(0.5, 40, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_beacon"]
+resource_local_to_scene = true
+shading_mode = 0
+albedo_color = Color(1, 0.85, 0.2, 1)
+
+[node name="HoldZone" type="Area3D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_zone")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_zone")
+
+[node name="FloorMarker" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_floor")
+material_override = SubResource("StandardMaterial3D_floor")
+
+[node name="Beacon" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 26, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_beacon")
+material_override = SubResource("StandardMaterial3D_beacon")
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.5, 0)
+pixel_size = 0.015
+billboard = 1
+no_depth_test = true
+text = "HOLD"
+font_size = 64
+outline_size = 16

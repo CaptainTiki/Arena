@@ -9,3 +9,4 @@ alive_at_start = 3
 alive_at_end = 8
 spawn_interval = 1.5
 batch_size = 1
+weights = PackedFloat32Array(0.75, 0.05, 0.2)

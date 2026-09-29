@@ -1,7 +1,7 @@
 class_name SponsorData
 extends Resource
 
-enum Trigger { HEADSHOTS, MULTIKILL, UNTOUCHED_STREAK }
+enum Trigger { HEADSHOTS, MULTIKILL, UNTOUCHED_STREAK, HOLD_ZONE }
 
 @export var display_name: String = "THE SPONSOR"
 @export var color: Color = Color(1.0, 1.0, 1.0)
@@ -19,7 +19,7 @@ enum Trigger { HEADSHOTS, MULTIKILL, UNTOUCHED_STREAK }
 
 @export_group("Scoring")
 ## HEADSHOTS: per headshot. MULTIKILL: per chained kill, times its place in the chain.
-## UNTOUCHED_STREAK: per second without taking damage.
+## UNTOUCHED_STREAK: per second without taking damage. HOLD_ZONE: per second inside the active zone.
 @export var score_per_event: float = 1.0
 ## HEADSHOTS only: per body hit.
 @export var minor_score: float = 0.25

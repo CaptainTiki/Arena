@@ -15,13 +15,21 @@ var target: Node3D
 var _elapsed: float = 0.0
 var _spawn_timer: float = 0.0
 var _spawn_points: Array[Marker3D] = []
+## One pool per enemy type, in the order wave weights refer to them.
+var _pools: Array[ScenePool] = []
 
-@onready var _pool: ScenePool = $Pool
+@onready var _pools_root: Node = $Pools
+@onready var _projectiles: ScenePool = $Projectiles
 
 
 func _ready() -> void:
-	for child: Node in _pool.get_children():
-		(child as Enemy).died.connect(_on_enemy_died)
+	for pool_node: Node in _pools_root.get_children():
+		var pool: ScenePool = pool_node as ScenePool
+		_pools.append(pool)
+		for child: Node in pool.get_children():
+			var enemy: Enemy = child as Enemy
+			enemy.died.connect(_on_enemy_died)
+			enemy.projectile_fired.connect(_on_enemy_projectile_fired)
 
 
 func _physics_process(delta: float) -> void:
@@ -36,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	_spawn_timer = wave.spawn_interval
 	var missing: int = get_target_alive() - get_alive_count()
 	for i: int in mini(wave.batch_size, missing):
-		_spawn_one()
+		_spawn_one(wave)
 
 
 ## Set by the owner, from whichever level is loaded.
@@ -53,7 +61,10 @@ func set_elapsed(seconds: float) -> void:
 
 
 func get_alive_count() -> int:
-	return _pool.get_active_count()
+	var alive: int = 0
+	for pool: ScenePool in _pools:
+		alive += pool.get_active_count()
+	return alive
 
 
 func get_target_alive() -> int:
@@ -75,12 +86,28 @@ func _get_current_wave() -> SpawnWave:
 	return waves[-1]
 
 
-func _spawn_one() -> void:
-	var enemy: Enemy = _pool.acquire() as Enemy
+func _spawn_one(wave: SpawnWave) -> void:
+	var enemy: Enemy = _pick_pool(wave).acquire() as Enemy
+	if enemy == null:
+		# That type is at its cap; fall back to the first pool.
+		enemy = _pools[0].acquire() as Enemy
 	if enemy == null:
 		return
 	var jitter: Vector3 = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * spawn_jitter
 	enemy.spawn(_pick_spawn_point().global_position + jitter, target)
+
+
+func _pick_pool(wave: SpawnWave) -> ScenePool:
+	var count: int = mini(wave.weights.size(), _pools.size())
+	var total: float = 0.0
+	for index: int in count:
+		total += wave.weights[index]
+	var roll: float = randf() * total
+	for index: int in count:
+		roll -= wave.weights[index]
+		if roll <= 0.0:
+			return _pools[index]
+	return _pools[0]
 
 
 func _pick_spawn_point() -> Marker3D:
@@ -95,3 +122,9 @@ func _pick_spawn_point() -> Marker3D:
 
 func _on_enemy_died(enemy: Enemy, hit: HitInfo) -> void:
 	enemy_died.emit(enemy, hit)
+
+
+func _on_enemy_projectile_fired(enemy: Enemy, origin: Vector3, shot_velocity: Vector3) -> void:
+	var projectile: Projectile = _projectiles.acquire() as Projectile
+	if projectile != null:
+		projectile.launch(origin, shot_velocity, enemy.data.attack_damage, enemy)

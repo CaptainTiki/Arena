@@ -76,3 +76,10 @@ Built in response to the step 1 and step 2 arena notes. Not one of the kickoff d
 * **Ammo economy:** likes it so far (question 2), but accuracy should not be the only route to ammo.
 * **Crossing:** still not hard. "Dash, dash, pick up stuff." Needs more dynamics to make it a choice.
 * **Changes made in response:** heavy and shooter enemies; a fourth sponsor that pays ammo for holding a marked zone, which moves after each payout.
+
+## Enemy variety and hold zones (2026-09-28)
+
+* **Overall:** tough, but a lot more fun than where it started.
+* **Heavy:** never gets close; easy to walk around. Needs more base speed and a way to close distance, such as an occasional charge when the player is beyond some range.
+* **Heavy health:** too much for the pistol alone. Too many shots for one kill.
+* **Changes made in response:** heavy speed 2.6 to 3.4 m/s, health 300 to 140, and a telegraphed straight-line charge when the player is 10 to 30 m away and visible, on a cooldown.

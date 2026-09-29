@@ -18,6 +18,8 @@ extends Node3D
 
 var _kills: int = 0
 var _empty_time: float = 0.0
+var _hold_zones: Array[HoldZone] = []
+var _active_zone: int = 0
 
 @onready var _level: Level = $Level
 @onready var _player: Player = $Player
@@ -56,6 +58,9 @@ func _ready() -> void:
 	_pod_dropper.pod_landed.connect(_on_pod_landed)
 	_pod_dropper.pod_collected.connect(_on_pod_collected)
 
+	_hold_zones = _level.get_hold_zones()
+	_activate_zone(0)
+
 
 func _process(_delta: float) -> void:
 	_hud.set_dash_charge(_player.get_dash_charge())
@@ -65,6 +70,17 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	_tick_pity(delta)
+	if not _hold_zones.is_empty():
+		_sponsors.set_holding(_hold_zones[_active_zone].is_occupied())
+
+
+## Only one hold zone is live at a time.
+func _activate_zone(index: int) -> void:
+	if _hold_zones.is_empty():
+		return
+	_active_zone = index % _hold_zones.size()
+	for zone_index: int in _hold_zones.size():
+		_hold_zones[zone_index].set_active(zone_index == _active_zone)
 
 
 func _tick_pity(delta: float) -> void:
@@ -121,6 +137,10 @@ func _on_enemy_died(_enemy: Enemy, hit: HitInfo) -> void:
 func _on_sponsor_drop_earned(sponsor: SponsorData, pod: PodData) -> void:
 	_pod_dropper.drop(pod, sponsor)
 	_hud.show_approval(sponsor, pod)
+	if sponsor.trigger == SponsorData.Trigger.HOLD_ZONE:
+		# A paid-out zone is spent; the next one is somewhere else, so holding ground means crossing it.
+		_activate_zone(_active_zone + 1)
+		_hud.show_pickup("HOLD ZONE MOVED", sponsor.color)
 
 
 func _on_pod_landed(pod: Pod) -> void:

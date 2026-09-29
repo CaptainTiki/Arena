@@ -4,10 +4,20 @@ extends NavigationRegion3D
 ## adding Blocks in the editor never needs a manual rebake.
 
 @onready var _spawn_points_root: Node3D = $SpawnPoints
+@onready var _hold_zones_root: Node3D = $HoldZones
 
 
 func _ready() -> void:
 	bake_navigation_mesh(false)
+
+
+## In the order the active zone rotates through them.
+func get_hold_zones() -> Array[HoldZone]:
+	var zones: Array[HoldZone] = []
+	for child: Node in _hold_zones_root.get_children():
+		if child is HoldZone:
+			zones.append(child as HoldZone)
+	return zones
 
 
 func get_spawn_points() -> Array[Marker3D]:

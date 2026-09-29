@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://arena/level.gd" id="1_level"]
 [ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
+[ext_resource type="PackedScene" path="res://arena/hold_zone.tscn" id="3_zone"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_level"]
 geometry_parsed_geometry_type = 1
@@ -233,6 +234,20 @@ color = Color(0.3, 0.4, 0.35, 1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2, 5)
 size = Vector3(1, 4, 7)
 color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="HoldZones" type="Node3D" parent="."]
+
+[node name="Terrace" parent="HoldZones" instance=ExtResource("3_zone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, -42)
+size = Vector3(14, 3, 10)
+
+[node name="Bunker" parent="HoldZones" instance=ExtResource("3_zone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37, 0, 0)
+size = Vector3(12, 3, 14)
+
+[node name="Bridge" parent="HoldZones" instance=ExtResource("3_zone")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3, 35)
+size = Vector3(14, 3, 5)
 
 [node name="SpawnPoints" type="Node3D" parent="."]
 

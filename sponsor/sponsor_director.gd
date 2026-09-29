@@ -15,6 +15,7 @@ var _thresholds: Array[float] = []
 var _drops: Array[int] = []
 var _chains: Array[int] = []
 var _chain_left: Array[float] = []
+var _holding: bool = false
 
 
 func _ready() -> void:
@@ -34,6 +35,19 @@ func _physics_process(delta: float) -> void:
 				_add(index, sponsor.score_per_event * delta, "")
 			SponsorData.Trigger.MULTIKILL:
 				_chain_left[index] = maxf(_chain_left[index] - delta, 0.0)
+			SponsorData.Trigger.HOLD_ZONE:
+				if _holding:
+					_add(index, sponsor.score_per_event * delta, "")
+
+
+## Call every tick with whether the player is standing in the active hold zone.
+func set_holding(holding: bool) -> void:
+	if holding == _holding:
+		return
+	_holding = holding
+	for index: int in sponsors.size():
+		if sponsors[index].trigger == SponsorData.Trigger.HOLD_ZONE:
+			sponsor_reacted.emit(index, "HOLDING" if holding else "LEFT THE ZONE", holding)
 
 
 ## Call for every shot fired. `hit` is null or not landed for a miss.

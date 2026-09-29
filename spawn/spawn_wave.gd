@@ -11,3 +11,5 @@ extends Resource
 @export var spawn_interval: float = 1.5
 ## Most enemies added per attempt.
 @export var batch_size: int = 1
+## Relative odds of each enemy type, in the order of the spawner's pools (grunt, heavy, shooter).
+@export var weights: PackedFloat32Array = PackedFloat32Array([1.0])

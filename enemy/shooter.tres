@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://enemy/enemy_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+attack_style = 2
+max_health = 20.0
+move_speed = 4.0
+speed_variance = 0.1
+acceleration = 30.0
+knockback_friction = 22.0
+knockback_scale = 1.2
+lead_time_max = 0.0
+lead_falloff_distance = 8.0
+repath_interval_min = 0.4
+repath_interval_max = 0.8
+waypoint_reach = 0.7
+attack_windup = 0.7
+attack_recover = 1.6
+attack_damage = 12.0
+preferred_range = 24.0
+retreat_range = 9.0
+projectile_speed = 24.0
+muzzle_height = 1.4
+lead_accuracy_min = 0.6
+lead_accuracy_max = 1.0
+body_color = Color(0.1, 0.6, 0.6, 1)
+hit_flash_color = Color(1, 1, 1, 1)
+windup_color = Color(1, 0.2, 0.9, 1)
+flash_fade_speed = 10.0
+windup_squash = 0.9
+pop_scale = 1.7
+pop_time = 0.12
