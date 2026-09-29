@@ -115,20 +115,22 @@ func log_enemy(event: String, enemy: Enemy, extra: Dictionary = {}) -> void:
 	_write(line)
 
 
-## `hit` is null when the shot struck nothing at all.
-func log_shot(hit: HitInfo, mag: int, reserve: int) -> void:
+## One trigger pull. `hit` is the best any pellet did, or null when nothing was struck at all.
+func log_shot(weapon: Weapon, hit: HitInfo, pellets_landed: int, damage_dealt: float) -> void:
 	if _file == null:
 		return
 	var line: Dictionary = _stamp("shot")
-	line["mag"] = mag
-	line["reserve"] = reserve
+	line["weapon"] = weapon.get_stats().display_name
+	line["mag"] = weapon.get_mag()
+	line["reserve"] = weapon.get_reserve()
 	if hit == null:
 		line["result"] = "sky"
 	elif not hit.landed():
 		line["result"] = "world"
 	else:
 		line["result"] = "head" if hit.is_headshot else "body"
-		line["damage"] = _num(hit.damage)
+		line["damage"] = _num(damage_dealt)
+		line["pellets"] = pellets_landed
 		line["killed"] = hit.killed
 		if hit.target is Enemy:
 			line.merge(_describe_enemy(hit.target as Enemy))
@@ -199,6 +201,7 @@ func _write_breadcrumb() -> void:
 	var line: Dictionary = _stamp("crumb")
 	line["speed"] = _short(Vector2(player.velocity.x, player.velocity.z).length())
 	line["health"] = _short(player.get_health())
+	line["weapon"] = weapon.get_stats().display_name
 	line["mag"] = weapon.get_mag()
 	line["reserve"] = weapon.get_reserve()
 	line["alive"] = enemies.size()

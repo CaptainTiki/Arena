@@ -2,8 +2,10 @@ class_name Weapon
 extends Node3D
 ## Semi-auto hitscan weapon.
 
-## `hit` is null when the shot struck nothing at all.
-signal shot_fired(hit: HitInfo)
+## Once per trigger pull. `hit` is the best any pellet did, or null when every pellet struck nothing at all.
+signal shot_fired(weapon: Weapon, hit: HitInfo, pellets_landed: int, damage_dealt: float)
+## Once per pellet that struck something, enemy or world.
+signal pellet_struck(hit: HitInfo)
 ## Aim kick in radians: x is yaw, y is pitch (up positive).
 signal recoiled(kick: Vector2)
 signal dry_fired
@@ -65,7 +67,7 @@ func try_fire() -> void:
 	_cooldown_left = _stats.fire_interval
 	_kick = 1.0
 	ammo_changed.emit(_mag, _reserve)
-	shot_fired.emit(_resolve_shot())
+	_fire_pellets()
 	recoiled.emit(Vector2(
 			deg_to_rad(randf_range(-_stats.recoil_yaw_degrees, _stats.recoil_yaw_degrees)),
 			deg_to_rad(_stats.recoil_pitch_degrees)))
@@ -80,14 +82,25 @@ func try_reload() -> void:
 	reload_started.emit()
 
 
+func holster() -> void:
+	_reload_left = 0.0
+	visible = false
+
+
+func draw() -> void:
+	visible = true
+	_cooldown_left = maxf(_cooldown_left, _stats.draw_time)
+
+
+## `amount` is in pistol rounds; each weapon takes its own share.
 func add_reserve(amount: int) -> void:
-	_reserve += amount
+	_reserve += _scale_pickup(amount)
 	ammo_changed.emit(_mag, _reserve)
 
 
 func add_mag_size(amount: int) -> void:
-	_stats.mag_size += amount
-	_mag += amount
+	_stats.mag_size += _scale_pickup(amount)
+	_mag += _scale_pickup(amount)
 	ammo_changed.emit(_mag, _reserve)
 
 
@@ -140,9 +153,46 @@ func _finish_reload() -> void:
 	reload_finished.emit()
 
 
-func _resolve_shot() -> HitInfo:
+func _scale_pickup(amount: int) -> int:
+	return maxi(roundi(amount * _stats.pickup_scale), 1)
+
+
+func _fire_pellets() -> void:
+	var best: HitInfo = null
+	var landed: int = 0
+	var damage_dealt: float = 0.0
+	for i: int in maxi(_stats.pellets, 1):
+		var hit: HitInfo = _resolve_shot(_get_pellet_direction())
+		if hit == null:
+			continue
+		pellet_struck.emit(hit)
+		if hit.landed():
+			landed += 1
+			damage_dealt += hit.damage
+		if best == null or _rank(hit) > _rank(best):
+			best = hit
+	shot_fired.emit(self, best, landed, damage_dealt)
+
+
+## A kill beats a weak-point hit, which beats a body hit, which beats the wall.
+func _rank(hit: HitInfo) -> int:
+	if not hit.landed():
+		return 0
+	return 1 + int(hit.is_headshot) + 2 * int(hit.killed)
+
+
+func _get_pellet_direction() -> Vector3:
+	var aim: Basis = aim_origin.global_basis
+	if _stats.spread_degrees <= 0.0:
+		return -aim.z
+	# Even over the disc, so pellets don't bunch in the middle.
+	var radius: float = tan(deg_to_rad(_stats.spread_degrees)) * sqrt(randf())
+	var angle: float = randf() * TAU
+	return (-aim.z + aim.x * cos(angle) * radius + aim.y * sin(angle) * radius).normalized()
+
+
+func _resolve_shot(direction: Vector3) -> HitInfo:
 	var origin: Vector3 = aim_origin.global_position
-	var direction: Vector3 = -aim_origin.global_basis.z
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
 			origin, origin + direction * _stats.max_range, hit_mask, [wielder.get_rid()])
 	query.collide_with_areas = true

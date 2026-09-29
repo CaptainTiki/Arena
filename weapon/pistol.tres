@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1_data")
+display_name = "PISTOL"
 damage = 10.0
 headshot_multiplier = 8.0
 max_range = 200.0

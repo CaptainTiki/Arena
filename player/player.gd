@@ -7,6 +7,7 @@ signal died
 signal dashed(direction: Vector3)
 ## A hit the dash carried the player through.
 signal dodged(hit: HitInfo)
+signal weapon_changed(weapon: Weapon)
 
 @export var data: PlayerData
 
@@ -22,6 +23,8 @@ var _recoil_target: Vector2 = Vector2.ZERO
 var _trauma: float = 0.0
 var _shake_time: float = 0.0
 var _shake_noise: FastNoiseLite = FastNoiseLite.new()
+## Every weapon carried, in slot order. `_weapon` is the one in hand.
+var _weapons: Array[Weapon] = []
 
 @onready var _intent: PlayerIntent = $Intent
 @onready var _head: Node3D = $Head
@@ -35,7 +38,12 @@ func _ready() -> void:
 	_camera.fov = data.base_fov
 	_health = data.max_health
 	_base_mask = collision_mask
-	_weapon.recoiled.connect(_on_weapon_recoiled)
+	for child: Node in _camera.get_children():
+		if child is Weapon:
+			var weapon: Weapon = child as Weapon
+			_weapons.append(weapon)
+			weapon.recoiled.connect(_on_weapon_recoiled)
+			weapon.visible = weapon == _weapon
 
 
 func _process(delta: float) -> void:
@@ -66,6 +74,12 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 
 	move_and_slide()
+
+	var slot: int = _intent.consume_weapon_slot()
+	if _intent.consume_weapon_cycle():
+		slot = (_weapons.find(_weapon) + 1) % _weapons.size()
+	if slot >= 0:
+		_equip(slot)
 
 	if _intent.consume_reload():
 		_weapon.try_reload()
@@ -101,8 +115,13 @@ func add_trauma(amount: float) -> void:
 	_trauma = clampf(_trauma + amount, 0.0, 1.0)
 
 
+## The weapon in hand.
 func get_weapon() -> Weapon:
 	return _weapon
+
+
+func get_weapons() -> Array[Weapon]:
+	return _weapons
 
 
 func get_intent() -> PlayerIntent:
@@ -139,6 +158,15 @@ func _get_wish_direction() -> Vector3:
 	var direction: Vector3 = global_basis * Vector3(move.x, 0.0, move.y)
 	direction.y = 0.0
 	return direction.limit_length(1.0)
+
+
+func _equip(slot: int) -> void:
+	if slot >= _weapons.size() or _weapons[slot] == _weapon:
+		return
+	_weapon.holster()
+	_weapon = _weapons[slot]
+	_weapon.draw()
+	weapon_changed.emit(_weapon)
 
 
 func _start_dash(wish_direction: Vector3) -> void:

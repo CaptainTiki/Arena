@@ -137,6 +137,23 @@ func show_briefing(contract: ContractData, seconds: float) -> void:
 	_briefing_tween.tween_property(_briefing_label, ^"modulate:a", 0.0, 0.8)
 
 
+## The list of contracts to pick from, shown until one is chosen.
+func show_booking(contracts: Array[ContractData], booked: int) -> void:
+	if _briefing_tween != null:
+		_briefing_tween.kill()
+	var lines: PackedStringArray = ["CHOOSE A CONTRACT", ""]
+	for index: int in contracts.size():
+		var contract: ContractData = contracts[index]
+		lines.append("[%d]  %s   %s   %s   $%d%s" % [
+				index + 1, contract.display_name, contract.get_type_name(),
+				format_clock(contract.time_limit), contract.cash_reward,
+				"   (last booked)" if index == booked else ""])
+	lines.append("")
+	lines.append("Press a number, or click for the last booked")
+	_briefing_label.text = "\n".join(lines)
+	_briefing_label.modulate.a = 1.0
+
+
 static func format_clock(seconds: float) -> String:
 	var whole: int = maxi(ceili(seconds), 0)
 	@warning_ignore("integer_division")

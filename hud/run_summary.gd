@@ -49,6 +49,9 @@ func show_summary(
 		_teaser.modulate = favourite.sponsor.color
 
 
-func show_prompt(next_contract: ContractData) -> void:
-	_prompt.text = "Click: fight this contract again      R: next contract (%s)" % next_contract.display_name
+func show_prompt(contracts: Array[ContractData]) -> void:
+	var choices: PackedStringArray = ["Click: again"]
+	for index: int in contracts.size():
+		choices.append("%d: %s" % [index + 1, contracts[index].display_name])
+	_prompt.text = "      ".join(choices)
 	_prompt.visible = true

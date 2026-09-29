@@ -19,6 +19,8 @@ enum Outcome { WON, DIED, OUT_OF_TIME }
 @export var pity_delay: float = 6.0
 
 @export_group("Debug")
+## The first fight of a session waits for a contract to be picked. Off goes straight to the booked one.
+@export var ask_for_contract: bool = true
 ## Always fight this contract, whatever is booked.
 @export var debug_contract: ContractData
 ## Reloads never drain the reserve, so feel can be tested without the ammo economy.
@@ -26,6 +28,10 @@ enum Outcome { WON, DIED, OUT_OF_TIME }
 ## Start a density ramp this many seconds in, to test late-fight crowds.
 @export var debug_start_time: float = 0.0
 
+## Set once a contract has been picked, so reloading into the fight doesn't ask again.
+static var _session_booked: bool = false
+
+var _booking: bool = false
 var _contract: ContractData
 var _contract_index: int = 0
 var _stats: RunStats = RunStats.new()
@@ -50,6 +56,7 @@ var _was_holding: bool = false
 @onready var _sponsors: SponsorDirector = $SponsorDirector
 @onready var _pod_dropper: PodDropper = $PodDropper
 @onready var _log: RunLog = $RunLog
+## The weapon in hand.
 @onready var _weapon: Weapon = _player.get_weapon()
 @onready var _intent: PlayerIntent = _player.get_intent()
 
@@ -57,18 +64,23 @@ var _was_holding: bool = false
 func _ready() -> void:
 	_book_contract()
 
+	_booking = ask_for_contract and not _session_booked and debug_contract == null and contracts.size() > 1
 	_log.player = _player
 	_log.spawner = _spawner
-	_log.begin(_contract)
+	if not _booking:
+		_log.begin(_contract)
 
-	_weapon.infinite_reserve = debug_infinite_reserve
-	_weapon.shot_fired.connect(_on_weapon_shot_fired)
-	_weapon.dry_fired.connect(_hud.flash_dry_fire)
-	_weapon.dry_fired.connect(_log.log_player.bind("dry_fire"))
-	_weapon.reload_started.connect(_log.log_player.bind("reload_start"))
-	_weapon.reload_finished.connect(_log.log_player.bind("reload_done"))
-	_weapon.ammo_changed.connect(_on_weapon_ammo_changed)
-	_on_weapon_ammo_changed(_weapon.get_mag(), _weapon.get_reserve())
+	for weapon: Weapon in _player.get_weapons():
+		weapon.infinite_reserve = debug_infinite_reserve
+		weapon.shot_fired.connect(_on_weapon_shot_fired)
+		weapon.pellet_struck.connect(_on_weapon_pellet_struck)
+		weapon.dry_fired.connect(_hud.flash_dry_fire)
+		weapon.dry_fired.connect(_log.log_player.bind("dry_fire"))
+		weapon.reload_started.connect(_log.log_player.bind("reload_start"))
+		weapon.reload_finished.connect(_log.log_player.bind("reload_done"))
+		weapon.ammo_changed.connect(_on_weapon_ammo_changed.bind(weapon))
+	_player.weapon_changed.connect(_on_player_weapon_changed)
+	_on_weapon_ammo_changed(_weapon.get_mag(), _weapon.get_reserve(), _weapon)
 
 	_player.health_changed.connect(_hud.set_health)
 	_player.damaged.connect(_on_player_damaged)
@@ -89,7 +101,10 @@ func _ready() -> void:
 	_spawner.target = _player
 
 	_hud.setup_sponsors(_sponsors.sponsors)
-	_hud.show_briefing(_contract, run.briefing_time)
+	if _booking:
+		_hud.show_booking(contracts, _contract_index)
+	else:
+		_hud.show_briefing(_contract, run.briefing_time)
 	_sponsors.standing_changed.connect(_hud.set_sponsor_progress)
 	_sponsors.sponsor_reacted.connect(_hud.show_sponsor_reaction)
 	_sponsors.drop_earned.connect(_on_sponsor_drop_earned)
@@ -104,8 +119,14 @@ func _ready() -> void:
 	for station: AmmoStation in _level.get_ammo_stations():
 		station.collected.connect(_on_ammo_station_collected)
 
+	if _booking:
+		_freeze_world()
+
 
 func _process(delta: float) -> void:
+	if _booking:
+		_tick_booking()
+		return
 	if _run_over:
 		_tick_summary(delta)
 		return
@@ -116,7 +137,7 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _run_over:
+	if _run_over or _booking:
 		return
 	_run_time += delta
 	_tick_pity(delta)
@@ -200,11 +221,7 @@ func _end_run(outcome: Outcome) -> void:
 	_log.log_world("cash", {"earned": cash_earned, "total": profile.get_cash()})
 	profile.save()
 
-	# Freeze the world behind the summary. The intent keeps listening so the next fight can be started.
-	var frozen: Array[Node] = [_spawner, _sponsors, _pod_dropper, _player]
-	for node: Node in frozen:
-		node.process_mode = Node.PROCESS_MODE_DISABLED
-	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
+	_freeze_world()
 	_hud.visible = false
 	_summary_wait = run.summary_input_delay
 	_summary.show_summary(
@@ -213,6 +230,30 @@ func _end_run(outcome: Outcome) -> void:
 		_sfx.play_contract_won()
 	else:
 		_sfx.play_contract_lost()
+
+
+## Stops everything that moves. The intent keeps listening so a choice can still be made.
+func _freeze_world() -> void:
+	var frozen: Array[Node] = [_spawner, _sponsors, _pod_dropper, _player]
+	for node: Node in frozen:
+		node.process_mode = Node.PROCESS_MODE_DISABLED
+	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
+
+
+func _tick_booking() -> void:
+	var choice: int = _intent.consume_weapon_slot()
+	if _intent.consume_fire():
+		choice = _contract_index
+	if choice >= 0 and choice < contracts.size():
+		_start_contract(choice)
+
+
+func _start_contract(index: int) -> void:
+	var profile: ProfileStore = ProfileStore.new(profile_path)
+	profile.set_contract_index(index)
+	profile.save()
+	_session_booked = true
+	get_tree().reload_current_scene()
 
 
 func _get_outcome_title(outcome: Outcome) -> String:
@@ -239,23 +280,24 @@ func _tick_summary(delta: float) -> void:
 	_summary_wait -= delta
 	# Read both every frame so neither press is left queued.
 	var again: bool = _intent.consume_fire()
-	var next: bool = _intent.consume_reload()
+	var choice: int = _intent.consume_weapon_slot()
 	if _summary_wait > 0.0:
 		return
 	if was_waiting:
-		_summary.show_prompt(contracts[_get_next_contract_index()])
+		_summary.show_prompt(contracts)
 		return
-	if next:
-		var profile: ProfileStore = ProfileStore.new(profile_path)
-		profile.set_contract_index(_get_next_contract_index())
-		profile.save()
-	if again or next:
-		_log.log_world("summary_choice", {"choice": "next" if next else "again"})
-		get_tree().reload_current_scene()
+	if again:
+		choice = _contract_index
+	if choice >= 0 and choice < contracts.size():
+		_log.log_world("summary_choice", {"contract": contracts[choice].display_name})
+		_start_contract(choice)
 
 
 func _tick_pity(delta: float) -> void:
-	var out_of_ammo: bool = _weapon.get_mag() + _weapon.get_reserve() <= 0 and not _weapon.infinite_reserve
+	var out_of_ammo: bool = not _weapon.infinite_reserve
+	for weapon: Weapon in _player.get_weapons():
+		if weapon.get_mag() + weapon.get_reserve() > 0:
+			out_of_ammo = false
 	if not out_of_ammo or pity_pod == null or _pod_dropper.has_active_effect(PodData.Effect.AMMO):
 		_empty_time = 0.0
 		return
@@ -283,25 +325,39 @@ func _activate_zone(index: int) -> void:
 	})
 
 
-func _on_weapon_shot_fired(hit: HitInfo) -> void:
+## Once per trigger pull, with the best any pellet did.
+func _on_weapon_shot_fired(weapon: Weapon, hit: HitInfo, pellets_landed: int, damage_dealt: float) -> void:
 	_stats.record_shot(hit)
-	_log.log_shot(hit, _weapon.get_mag(), _weapon.get_reserve())
+	_log.log_shot(weapon, hit, pellets_landed, damage_dealt)
 	_sponsors.on_shot(hit)
-	if hit == null:
+	if hit == null or not hit.landed():
 		return
+	_hud.flash_hit_marker(hit.is_headshot)
+	_player.add_trauma(damage_dealt * feel.trauma_per_damage_dealt)
+
+
+func _on_weapon_pellet_struck(hit: HitInfo) -> void:
 	var marker: ImpactMarker = _impact_pool.acquire() as ImpactMarker
 	if marker != null:
 		marker.play(hit)
 	if not hit.landed():
 		return
-	_hud.flash_hit_marker(hit.is_headshot)
-	_player.add_trauma(hit.damage * feel.trauma_per_damage_dealt)
 	var number: DamageNumber = _number_pool.acquire() as DamageNumber
 	if number != null:
 		number.play(hit)
 
 
-func _on_weapon_ammo_changed(mag: int, reserve: int) -> void:
+func _on_player_weapon_changed(weapon: Weapon) -> void:
+	_weapon = weapon
+	_on_weapon_ammo_changed(weapon.get_mag(), weapon.get_reserve(), weapon)
+	_hud.show_pickup(weapon.get_stats().display_name, Color.WHITE)
+	_log.log_player("weapon", {"weapon": weapon.get_stats().display_name})
+
+
+func _on_weapon_ammo_changed(mag: int, reserve: int, weapon: Weapon) -> void:
+	# Pickups feed every weapon; only the one in hand is on the HUD.
+	if weapon != _weapon:
+		return
 	_hud.set_ammo(mag, _weapon.get_mag_size(), -1 if _weapon.infinite_reserve else reserve)
 
 
@@ -368,18 +424,27 @@ func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
 		_target_pods += 1
 	match pod_data.effect:
 		PodData.Effect.AMMO:
-			_weapon.add_reserve(roundi(pod_data.amount))
+			_add_ammo(roundi(pod_data.amount))
 		PodData.Effect.HEALTH:
 			_player.heal(pod_data.amount)
 		PodData.Effect.MAG_SIZE:
-			_weapon.add_mag_size(roundi(pod_data.amount))
+			for weapon: Weapon in _player.get_weapons():
+				weapon.add_mag_size(roundi(pod_data.amount))
 		PodData.Effect.FIRE_RATE:
-			_weapon.quicken_fire(pod_data.amount)
+			for weapon: Weapon in _player.get_weapons():
+				weapon.quicken_fire(pod_data.amount)
 		PodData.Effect.DASH_COOLDOWN:
 			_player.quicken_dash(pod_data.amount)
 		PodData.Effect.DAMAGE:
-			_weapon.boost_damage(pod_data.amount)
+			for weapon: Weapon in _player.get_weapons():
+				weapon.boost_damage(pod_data.amount)
 	_hud.show_pickup(pod_data.display_name, Color.WHITE if sponsor == null else sponsor.color)
+
+
+## Every weapon carried takes its share.
+func _add_ammo(rounds: int) -> void:
+	for weapon: Weapon in _player.get_weapons():
+		weapon.add_reserve(rounds)
 
 
 func _on_ammo_station_collected(station: AmmoStation) -> void:
@@ -388,6 +453,6 @@ func _on_ammo_station_collected(station: AmmoStation) -> void:
 		_log.log_player("station", {"stock": "health", "amount": station.data.health})
 		_hud.show_pickup("HEALTH +%d" % roundi(station.data.health), station.get_color())
 		return
-	_weapon.add_reserve(station.data.ammo)
+	_add_ammo(station.data.ammo)
 	_log.log_player("station", {"stock": "ammo", "amount": station.data.ammo})
 	_hud.show_pickup("AMMO +%d" % station.data.ammo, station.get_color())

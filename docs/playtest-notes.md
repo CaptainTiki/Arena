@@ -279,3 +279,23 @@ Built because shrinking the head changed nothing: a head on top of a body is hit
 * **Still no hit dodged with the dash**, in 11 dashes.
 * Every logged run since the first three has been Long Night, the hardest contract with doubled health. Nothing is known yet about how the robots play on the other two.
 * Decision: build a shotgun as the crowd-control weapon, carried alongside the pistol.
+
+## Shotgun and weapon switching (2026-09-29, not yet playtested)
+
+* Both weapons are carried from the start. `1` pistol, `2` shotgun, `Q` or the mouse wheel swaps. Swapping cancels a reload and takes 0.35 s before the shotgun can fire.
+* **Shotgun:** 8 pellets at 10 damage each inside a 5 degree cone, 6 shells, 0.8 s between shots, 2.2 s reload, 40 m range. Weak-point pellets do 2x, not 8x; it is a body weapon. Each pellet shoves.
+* A full blast kills a grunt (80 health) outright. In headless tests 7 or 8 pellets landed on a grunt at 4 to 6 m.
+* **Ammo is shared out, not chosen:** every ammo pickup feeds both weapons, the shotgun at half the count (AMMO +18 is 18 rounds and 9 shells). Mag, fire rate and damage pods upgrade both.
+* The pity drop only triggers when both weapons are empty.
+* Sponsors and stats count one shot per trigger pull, judged by the best pellet.
+* Log: `shot` lines carry the weapon, pellets landed and total damage; `weapon` marks a swap.
+
+## Shotgun, playtest (2026-09-29, Long Night then First Blood)
+
+* **Shotgun felt really weak.** Nothing died to one shot, even close, even on the weak point. Not sure it helped or hurt.
+* **Contracts could not be chosen.** The game offered only "again" or "next", which is why every earlier run was Long Night.
+* **Log:** 30 shotgun blasts, 12 kills, average 74 damage per blast that hit, at an average 5.6 m. A full blast was worth exactly 80, a grunt's full health, so one stray pellet meant no kill; and 22 of the 30 blasts were fired in Long Night, where a grunt has 160.
+* **The shotgun did kill heavies:** two, the first heavies killed in any logged run. Body damage in bulk gets through where pistol body shots did not.
+* **Changes made in response:**
+  * Shotgun: 10 pellets at 12 damage (120 a blast, was 80), weak-point pellets 3x (was 2x). A grunt at normal health now dies with 7 of 10 pellets.
+  * Contract picker: the first fight of a session waits on a list, and the summary screen offers the same list. Number keys 1 to 3 choose, click repeats the last one.

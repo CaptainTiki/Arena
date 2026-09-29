@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://player/player_default.tres" id="3_data"]
 [ext_resource type="Script" path="res://weapon/weapon.gd" id="4_weapon"]
 [ext_resource type="Resource" path="res://weapon/pistol.tres" id="5_pistol"]
+[ext_resource type="Resource" path="res://weapon/shotgun.tres" id="6_shotgun"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_body"]
 radius = 0.4
@@ -16,6 +17,13 @@ albedo_color = Color(0.12, 0.12, 0.14, 1)
 [sub_resource type="BoxMesh" id="BoxMesh_gun"]
 material = SubResource("StandardMaterial3D_gun")
 size = Vector3(0.07, 0.11, 0.45)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_shotgun"]
+albedo_color = Color(0.3, 0.2, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shotgun"]
+material = SubResource("StandardMaterial3D_shotgun")
+size = Vector3(0.12, 0.13, 0.9)
 
 [node name="Player" type="CharacterBody3D"]
 collision_layer = 2
@@ -49,3 +57,14 @@ aim_origin = NodePath("../..")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.2, -0.5)
 cast_shadow = 0
 mesh = SubResource("BoxMesh_gun")
+
+[node name="Shotgun" type="Node3D" parent="Head/Camera3D" node_paths=PackedStringArray("wielder", "aim_origin")]
+script = ExtResource("4_weapon")
+data = ExtResource("6_shotgun")
+wielder = NodePath("../../..")
+aim_origin = NodePath("../..")
+
+[node name="Gun" type="MeshInstance3D" parent="Head/Camera3D/Shotgun"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.24, -0.22, -0.6)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_shotgun")

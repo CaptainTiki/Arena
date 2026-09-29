@@ -6,6 +6,8 @@ var _look_accum: Vector2 = Vector2.ZERO
 var _dash_queued: bool = false
 var _fire_queued: bool = false
 var _reload_queued: bool = false
+var _slot_queued: int = -1
+var _cycle_queued: bool = false
 
 
 func _ready() -> void:
@@ -30,6 +32,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_fire_queued = true
 	elif event.is_action_pressed(&"reload"):
 		_reload_queued = true
+	elif event.is_action_pressed(&"weapon_1"):
+		_slot_queued = 0
+	elif event.is_action_pressed(&"weapon_2"):
+		_slot_queued = 1
+	elif event.is_action_pressed(&"weapon_3"):
+		_slot_queued = 2
+	elif event.is_action_pressed(&"weapon_next"):
+		_cycle_queued = true
 
 
 ## False while the mouse is released; all intents read as idle.
@@ -69,4 +79,17 @@ func consume_fire() -> bool:
 func consume_reload() -> bool:
 	var queued: bool = _reload_queued
 	_reload_queued = false
+	return queued
+
+
+## The number key pressed, counting from zero, or -1 for none. A weapon slot in a fight, a menu choice outside one.
+func consume_weapon_slot() -> int:
+	var queued: int = _slot_queued
+	_slot_queued = -1
+	return queued
+
+
+func consume_weapon_cycle() -> bool:
+	var queued: bool = _cycle_queued
+	_cycle_queued = false
 	return queued
