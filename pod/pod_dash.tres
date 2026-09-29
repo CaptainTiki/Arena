@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PodData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://pod/pod_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "DASH COOLDOWN -10%"
+effect = 4
+amount = 0.1
+lifetime = 25.0

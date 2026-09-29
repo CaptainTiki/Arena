@@ -16,7 +16,18 @@ var _status_text: String = ""
 var _status_tween: Tween
 var _crosshair_tween: Tween
 var _damage_tween: Tween
+var _approval_tween: Tween
+var _pickup_tween: Tween
+var _meters: Array[SponsorMeter] = []
 
+@export var approval_hold_time: float = 1.6
+@export var approval_fade_time: float = 0.6
+@export var pickup_time: float = 1.4
+
+@onready var _meters_root: Control = $SponsorMeters
+@onready var _approval_label: Label = $ApprovalLabel
+@onready var _approval_detail: Label = $ApprovalDetail
+@onready var _pickup_label: Label = $PickupLabel
 @onready var _health_bar: ProgressBar = $HealthBar
 @onready var _damage_flash: ColorRect = $DamageFlash
 @onready var _stats_label: Label = $StatsLabel
@@ -31,6 +42,58 @@ var _damage_tween: Tween
 func _ready() -> void:
 	_crosshair.pivot_offset = _crosshair.size * 0.5
 	_reload_bar.visible = false
+	_approval_label.modulate.a = 0.0
+	_approval_detail.modulate.a = 0.0
+	_pickup_label.modulate.a = 0.0
+	for child: Node in _meters_root.get_children():
+		_meters.append(child as SponsorMeter)
+
+
+## One meter row per sponsor, in order. Rows without a sponsor are hidden.
+func setup_sponsors(sponsors: Array[SponsorData]) -> void:
+	for index: int in _meters.size():
+		_meters[index].visible = index < sponsors.size()
+		if index < sponsors.size():
+			_meters[index].setup(sponsors[index])
+
+
+func set_sponsor_progress(index: int, progress: float) -> void:
+	if index < _meters.size():
+		_meters[index].set_progress(progress)
+
+
+func show_sponsor_reaction(index: int, reason: String, positive: bool) -> void:
+	if index < _meters.size():
+		_meters[index].show_reaction(reason, positive)
+
+
+func show_approval(sponsor: SponsorData, pod: PodData) -> void:
+	if _approval_tween != null:
+		_approval_tween.kill()
+	_approval_label.text = "%s APPROVES" % sponsor.display_name
+	_approval_detail.text = "%s incoming - follow the beacon" % pod.display_name
+	_approval_label.modulate = sponsor.color
+	_approval_detail.modulate = sponsor.color
+	_approval_label.pivot_offset = _approval_label.size * 0.5
+	_approval_label.scale = Vector2.ONE * 1.4
+	_approval_tween = create_tween()
+	_approval_tween.tween_property(_approval_label, ^"scale", Vector2.ONE, 0.2)
+	_approval_tween.tween_interval(approval_hold_time)
+	_approval_tween.tween_property(_approval_label, ^"modulate:a", 0.0, approval_fade_time)
+	_approval_tween.parallel().tween_property(_approval_detail, ^"modulate:a", 0.0, approval_fade_time)
+
+
+func show_pickup(text: String, color: Color) -> void:
+	if _pickup_tween != null:
+		_pickup_tween.kill()
+	_pickup_label.text = text
+	_pickup_label.modulate = color
+	_pickup_label.pivot_offset = _pickup_label.size * 0.5
+	_pickup_label.scale = Vector2.ONE * 1.5
+	_pickup_tween = create_tween()
+	_pickup_tween.tween_property(_pickup_label, ^"scale", Vector2.ONE, 0.15)
+	_pickup_tween.tween_interval(pickup_time * 0.5)
+	_pickup_tween.tween_property(_pickup_label, ^"modulate:a", 0.0, pickup_time * 0.5)
 
 
 func set_dash_charge(charge: float) -> void:

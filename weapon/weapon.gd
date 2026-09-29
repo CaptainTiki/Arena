@@ -85,6 +85,17 @@ func add_reserve(amount: int) -> void:
 	ammo_changed.emit(_mag, _reserve)
 
 
+func add_mag_size(amount: int) -> void:
+	_stats.mag_size += amount
+	_mag += amount
+	ammo_changed.emit(_mag, _reserve)
+
+
+## 0.1 makes the weapon fire 10% faster.
+func quicken_fire(fraction: float) -> void:
+	_stats.fire_interval *= 1.0 - fraction
+
+
 func is_reloading() -> bool:
 	return _reload_left > 0.0
 

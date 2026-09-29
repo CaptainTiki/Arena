@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="SponsorData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://sponsor/sponsor_data.gd" id="1_data"]
+[ext_resource type="Script" path="res://pod/pod_data.gd" id="2_pod"]
+[ext_resource type="Resource" path="res://pod/pod_ammo.tres" id="3_ammo"]
+
+[resource]
+script = ExtResource("1_data")
+display_name = "THE MARKSMAN"
+color = Color(0.2, 0.8, 1, 1)
+wants = "headshots, no misses"
+trigger = 0
+threshold = 6.0
+threshold_growth = 1.2
+pods = Array[ExtResource("2_pod")]([ExtResource("3_ammo")])
+score_per_event = 1.0
+minor_score = 0.25
+penalty = 0.5
+window = 0.0

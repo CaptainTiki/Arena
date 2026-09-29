@@ -10,3 +10,5 @@ hitstop_headshot_kill = 0.09
 trauma_per_damage_dealt = 0.012
 trauma_per_kill = 0.15
 trauma_per_damage_taken = 0.06
+trauma_pod_landing = 0.5
+pod_landing_falloff = 30.0

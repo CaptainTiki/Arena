@@ -68,3 +68,11 @@ Built in response to the step 1 and step 2 arena notes. Not one of the kickoff d
 * **Terrace and bridge:** not worth holding, just places to pass through. Idea: hold-the-zone mechanic, stay within range of something for X seconds and it drops Y. Could be a future route to ammo or health. Fits as a fourth sponsor trigger.
 * **Bunker:** not found during the playtest (west arm). Concern: a room without two exits is a death trap. It has two doorways, east and south.
 * **Pathing:** no enemies seen getting stuck.
+
+## Steps 5 and 6 — sponsors and pods (2026-09-28)
+
+* **Pods:** liked. Actively tried to earn more ammo, and chained kills on purpose for the bigger mag and fire rate. Answer to question 4 (does courting sponsors change play): yes.
+* **Readability:** knew why points were being scored, because the meter lists what each sponsor wants. Answer to question 3: readable, but only thanks to the on-screen text. Future: the player needs somewhere to read about their sponsors between missions.
+* **Ammo economy:** likes it so far (question 2), but accuracy should not be the only route to ammo.
+* **Crossing:** still not hard. "Dash, dash, pick up stuff." Needs more dynamics to make it a choice.
+* **Changes made in response:** heavy and shooter enemies; a fourth sponsor that pays ammo for holding a marked zone, which moves after each payout.

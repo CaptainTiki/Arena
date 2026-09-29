@@ -27,6 +27,8 @@ var _shake_noise: FastNoiseLite = FastNoiseLite.new()
 
 
 func _ready() -> void:
+	# Runtime copy so pod upgrades never write back to the authored resource.
+	data = data.duplicate() as PlayerData
 	_camera.fov = data.base_fov
 	_health = data.max_health
 	_base_mask = collision_mask
@@ -76,6 +78,16 @@ func take_hit(hit: HitInfo) -> void:
 	health_changed.emit(_health, data.max_health)
 	if _health <= 0.0:
 		died.emit()
+
+
+func heal(amount: float) -> void:
+	_health = minf(_health + amount, data.max_health)
+	health_changed.emit(_health, data.max_health)
+
+
+## 0.1 makes the dash come back 10% sooner.
+func quicken_dash(fraction: float) -> void:
+	data.dash_cooldown *= 1.0 - fraction
 
 
 ## Screenshake input, 0.0 to 1.0. Shake strength is trauma squared.

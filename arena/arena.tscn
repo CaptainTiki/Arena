@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
@@ -16,6 +16,14 @@
 [ext_resource type="Script" path="res://feel/hitstop.gd" id="14_hitstop"]
 [ext_resource type="PackedScene" path="res://feel/damage_number.tscn" id="15_number"]
 [ext_resource type="PackedScene" path="res://arena/level.tscn" id="16_level"]
+[ext_resource type="Script" path="res://sponsor/sponsor_director.gd" id="17_director"]
+[ext_resource type="Script" path="res://sponsor/sponsor_data.gd" id="18_sponsor"]
+[ext_resource type="Resource" path="res://sponsor/marksman.tres" id="19_marksman"]
+[ext_resource type="Resource" path="res://sponsor/butcher.tres" id="20_butcher"]
+[ext_resource type="Resource" path="res://sponsor/purist.tres" id="21_purist"]
+[ext_resource type="Script" path="res://pod/pod_dropper.gd" id="22_dropper"]
+[ext_resource type="PackedScene" path="res://pod/pod.tscn" id="23_pod"]
+[ext_resource type="Resource" path="res://pod/pod_pity_ammo.tres" id="24_pity"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -27,6 +35,7 @@ ambient_light_energy = 0.5
 [node name="Arena" type="Node3D"]
 script = ExtResource("1_arena")
 feel = ExtResource("13_feel")
+pity_pod = ExtResource("24_pity")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_arena")
@@ -62,6 +71,19 @@ waves = Array[ExtResource("8_wave")]([ExtResource("9_wave1"), ExtResource("10_wa
 script = ExtResource("4_pool")
 scene = ExtResource("6_enemy")
 size = 64
+
+[node name="SponsorDirector" type="Node" parent="."]
+script = ExtResource("17_director")
+sponsors = Array[ExtResource("18_sponsor")]([ExtResource("19_marksman"), ExtResource("20_butcher"), ExtResource("21_purist")])
+
+[node name="PodDropper" type="Node3D" parent="."]
+script = ExtResource("22_dropper")
+
+[node name="Pool" type="Node" parent="PodDropper"]
+script = ExtResource("4_pool")
+scene = ExtResource("23_pod")
+size = 12
+recycle_oldest = true
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 
