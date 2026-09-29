@@ -14,7 +14,7 @@ extends Resource
 @export var deceleration: float = 55.0
 
 @export_group("Dash")
-@export var dash_speed: float = 28.0
+@export var dash_speed: float = 14.0
 @export var dash_duration: float = 0.18
 @export var dash_cooldown: float = 1.2
 ## Physics layers the player passes through while dashing.
