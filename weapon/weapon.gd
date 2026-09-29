@@ -1,6 +1,6 @@
 class_name Weapon
 extends Node3D
-## Semi-auto hitscan weapon. Sits at the camera origin and fires down its own -Z.
+## Semi-auto hitscan weapon.
 
 ## `hit` is null when the shot struck nothing at all.
 signal shot_fired(hit: HitInfo)
@@ -13,6 +13,8 @@ signal reload_finished
 
 @export var data: WeaponData
 @export var wielder: CollisionObject3D
+## Shots travel down this node's -Z, so camera shake never moves the aim.
+@export var aim_origin: Node3D
 @export_flags_3d_physics var hit_mask: int = 21
 
 ## Debug aid: reloads never drain the reserve.
@@ -123,8 +125,8 @@ func _finish_reload() -> void:
 
 
 func _resolve_shot() -> HitInfo:
-	var origin: Vector3 = global_position
-	var direction: Vector3 = -global_basis.z
+	var origin: Vector3 = aim_origin.global_position
+	var direction: Vector3 = -aim_origin.global_basis.z
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
 			origin, origin + direction * _stats.max_range, hit_mask, [wielder.get_rid()])
 	query.collide_with_areas = true
@@ -147,8 +149,10 @@ func _resolve_shot() -> HitInfo:
 		hit.target = collider as Node
 
 	hit.damage = _stats.damage
+	hit.knockback = _stats.knockback
 	if hit.is_headshot:
 		hit.damage *= _stats.headshot_multiplier
+		hit.knockback *= _stats.headshot_knockback_multiplier
 	if hit.landed():
 		hit.target.call(&"take_hit", hit)
 	return hit

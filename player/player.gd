@@ -16,6 +16,9 @@ var _dash_direction: Vector3 = Vector3.ZERO
 ## Aim offset from recoil, radians: x is yaw, y is pitch.
 var _recoil: Vector2 = Vector2.ZERO
 var _recoil_target: Vector2 = Vector2.ZERO
+var _trauma: float = 0.0
+var _shake_time: float = 0.0
+var _shake_noise: FastNoiseLite = FastNoiseLite.new()
 
 @onready var _intent: PlayerIntent = $Intent
 @onready var _head: Node3D = $Head
@@ -33,6 +36,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_apply_look()
 	_update_recoil(delta)
+	_update_shake(delta)
 	_update_fov(delta)
 
 
@@ -72,6 +76,11 @@ func take_hit(hit: HitInfo) -> void:
 	health_changed.emit(_health, data.max_health)
 	if _health <= 0.0:
 		died.emit()
+
+
+## Screenshake input, 0.0 to 1.0. Shake strength is trauma squared.
+func add_trauma(amount: float) -> void:
+	_trauma = clampf(_trauma + amount, 0.0, 1.0)
 
 
 func get_weapon() -> Weapon:
@@ -114,13 +123,20 @@ func _start_dash(wish_direction: Vector3) -> void:
 
 
 func _apply_ground_movement(wish_direction: Vector3, delta: float) -> void:
-	var top_speed: float = data.sprint_speed if _intent.is_sprinting() else data.walk_speed
+	var top_speed: float = data.sprint_speed if _is_sprinting() else data.walk_speed
+	var backward: float = maxf(_intent.get_move().y, 0.0)
+	top_speed *= lerpf(1.0, data.backpedal_multiplier, backward)
 	var target: Vector3 = wish_direction * top_speed
 	var horizontal: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
 	var rate: float = data.deceleration if wish_direction.is_zero_approx() else data.acceleration
 	horizontal = horizontal.move_toward(target, rate * delta)
 	velocity.x = horizontal.x
 	velocity.z = horizontal.z
+
+
+## Sprint only counts while moving forward.
+func _is_sprinting() -> bool:
+	return _intent.is_sprinting() and _intent.get_move().y < 0.0
 
 
 func _apply_look() -> void:
@@ -145,11 +161,22 @@ func _on_weapon_recoiled(kick: Vector2) -> void:
 	_recoil_target += kick
 
 
+func _update_shake(delta: float) -> void:
+	_trauma = maxf(_trauma - data.shake_decay * delta, 0.0)
+	_shake_time += delta * data.shake_frequency
+	var strength: float = _trauma * _trauma * deg_to_rad(data.shake_max_degrees)
+	# Shake lives on the camera only, so it never moves the aim.
+	_camera.rotation = Vector3(
+			_shake_noise.get_noise_2d(_shake_time, 0.0),
+			_shake_noise.get_noise_2d(_shake_time, 100.0),
+			_shake_noise.get_noise_2d(_shake_time, 200.0)) * strength
+
+
 func _update_fov(delta: float) -> void:
 	var target_fov: float = data.base_fov
 	if is_dashing():
 		target_fov += data.dash_fov_bonus
-	elif _intent.is_sprinting() and not _intent.get_move().is_zero_approx():
+	elif _is_sprinting():
 		target_fov += data.sprint_fov_bonus
 	var weight: float = 1.0 - exp(-data.fov_lerp_speed * delta)
 	_camera.fov = lerpf(_camera.fov, target_fov, weight)

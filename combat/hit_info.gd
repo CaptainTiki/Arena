@@ -4,6 +4,10 @@ extends RefCounted
 
 var damage: float = 0.0
 var is_headshot: bool = false
+## Speed imparted to the target along `direction`.
+var knockback: float = 0.0
+## Set by the target when this hit finished it off.
+var killed: bool = false
 var position: Vector3 = Vector3.ZERO
 var normal: Vector3 = Vector3.UP
 var direction: Vector3 = Vector3.FORWARD

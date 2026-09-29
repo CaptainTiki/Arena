@@ -6,7 +6,10 @@ extends Resource
 
 @export_group("Movement")
 @export var walk_speed: float = 7.0
+## Forward only.
 @export var sprint_speed: float = 11.0
+## Speed scale when moving straight backward. Blends in with the backward part of the input.
+@export_range(0.0, 1.0) var backpedal_multiplier: float = 0.6
 @export var acceleration: float = 70.0
 @export var deceleration: float = 55.0
 
@@ -27,3 +30,10 @@ extends Resource
 @export var sprint_fov_bonus: float = 5.0
 @export var dash_fov_bonus: float = 14.0
 @export var fov_lerp_speed: float = 12.0
+
+@export_group("Screenshake")
+## Camera rotation at full trauma.
+@export var shake_max_degrees: float = 5.0
+## Trauma lost per second.
+@export var shake_decay: float = 2.2
+@export var shake_frequency: float = 120.0

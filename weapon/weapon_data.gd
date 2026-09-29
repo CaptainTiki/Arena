@@ -5,10 +5,13 @@ extends Resource
 @export var damage: float = 10.0
 @export var headshot_multiplier: float = 2.0
 @export var max_range: float = 200.0
+## Speed the target is shoved back at, metres per second.
+@export var knockback: float = 4.0
+@export var headshot_knockback_multiplier: float = 2.0
 
 @export_group("Ammo")
-@export var mag_size: int = 6
-@export var starting_reserve: int = 12
+@export var mag_size: int = 12
+@export var starting_reserve: int = 24
 @export var reload_time: float = 1.4
 ## Pulling the trigger on an empty mag starts a reload if there is reserve.
 @export var reload_on_dry_fire: bool = true
@@ -19,13 +22,13 @@ extends Resource
 
 @export_group("Recoil")
 ## Upward aim kick per shot.
-@export var recoil_pitch_degrees: float = 2.2
+@export var recoil_pitch_degrees: float = 3.4
 ## Sideways aim kick per shot, rolled randomly between minus and plus this.
-@export var recoil_yaw_degrees: float = 0.9
+@export var recoil_yaw_degrees: float = 1.5
 ## How fast the view snaps to the kicked position.
 @export var recoil_snap_speed: float = 45.0
 ## How fast the aim settles back. Lower means rapid fire climbs more.
-@export var recoil_recover_speed: float = 7.0
+@export var recoil_recover_speed: float = 5.5
 
 @export_group("View")
 @export var kick_distance: float = 0.12

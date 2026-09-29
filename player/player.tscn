@@ -37,10 +37,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
 current = true
 fov = 90.0
 
-[node name="Weapon" type="Node3D" parent="Head/Camera3D" node_paths=PackedStringArray("wielder")]
+[node name="Weapon" type="Node3D" parent="Head/Camera3D" node_paths=PackedStringArray("wielder", "aim_origin")]
 script = ExtResource("4_weapon")
 data = ExtResource("5_pistol")
 wielder = NodePath("../../..")
+aim_origin = NodePath("../..")
 
 [node name="Gun" type="MeshInstance3D" parent="Head/Camera3D/Weapon"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.2, -0.5)

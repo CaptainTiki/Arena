@@ -2,6 +2,8 @@ class_name Arena
 extends Node3D
 ## Top of the ownership spine. Children report up to here; Arena routes between them.
 
+@export var feel: FeelData
+
 @export_group("Debug")
 ## Reloads never drain the reserve, so feel can be tested without the ammo economy.
 @export var debug_infinite_reserve: bool = true
@@ -13,6 +15,8 @@ var _kills: int = 0
 @onready var _player: Player = $Player
 @onready var _hud: Hud = $Hud
 @onready var _impact_pool: ScenePool = $ImpactPool
+@onready var _number_pool: ScenePool = $DamageNumberPool
+@onready var _hitstop: Hitstop = $Hitstop
 @onready var _spawner: Spawner = $Spawner
 @onready var _weapon: Weapon = _player.get_weapon()
 
@@ -45,16 +49,22 @@ func _on_weapon_shot_fired(hit: HitInfo) -> void:
 	var marker: ImpactMarker = _impact_pool.acquire() as ImpactMarker
 	if marker != null:
 		marker.play(hit)
-	if hit.landed():
-		_hud.flash_hit_marker(hit.is_headshot)
+	if not hit.landed():
+		return
+	_hud.flash_hit_marker(hit.is_headshot)
+	_player.add_trauma(hit.damage * feel.trauma_per_damage_dealt)
+	var number: DamageNumber = _number_pool.acquire() as DamageNumber
+	if number != null:
+		number.play(hit)
 
 
 func _on_weapon_ammo_changed(mag: int, reserve: int) -> void:
 	_hud.set_ammo(mag, _weapon.get_mag_size(), -1 if _weapon.infinite_reserve else reserve)
 
 
-func _on_player_damaged(_hit: HitInfo) -> void:
+func _on_player_damaged(hit: HitInfo) -> void:
 	_hud.flash_damage()
+	_player.add_trauma(hit.damage * feel.trauma_per_damage_taken)
 
 
 func _on_player_died() -> void:
@@ -62,5 +72,8 @@ func _on_player_died() -> void:
 	get_tree().reload_current_scene.call_deferred()
 
 
-func _on_enemy_died(_enemy: Enemy, _hit: HitInfo) -> void:
+func _on_enemy_died(_enemy: Enemy, hit: HitInfo) -> void:
 	_kills += 1
+	_player.add_trauma(feel.trauma_per_kill)
+	var freeze: float = feel.hitstop_headshot_kill if hit.is_headshot else feel.hitstop_kill
+	_hitstop.trigger(freeze, feel.hitstop_time_scale)
