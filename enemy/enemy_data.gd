@@ -15,6 +15,11 @@ extends Resource
 @export var lead_time_max: float = 1.0
 ## Inside this distance the enemy stops leading and runs straight at the target.
 @export var lead_falloff_distance: float = 8.0
+## Each enemy replans its route at a random interval in this range, so the pack never replans on one frame.
+@export var repath_interval_min: float = 0.25
+@export var repath_interval_max: float = 0.5
+## A route corner counts as reached inside this distance.
+@export var waypoint_reach: float = 0.7
 
 @export_group("Melee")
 ## Distance to the target at which the windup starts.
@@ -25,6 +30,8 @@ extends Resource
 @export var lunge_duration: float = 0.3
 ## The lunge connects if it gets this close to the target.
 @export var attack_reach: float = 1.3
+## No windup or strike when the target is further above or below than this.
+@export var attack_height_tolerance: float = 1.5
 @export var attack_recover: float = 0.6
 @export var attack_damage: float = 10.0
 

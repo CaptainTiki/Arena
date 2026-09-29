@@ -20,6 +20,9 @@ var _move_velocity: Vector3 = Vector3.ZERO
 var _knockback: Vector3 = Vector3.ZERO
 var _lunge_direction: Vector3 = Vector3.ZERO
 var _lunge_connected: bool = false
+var _path: PackedVector3Array = PackedVector3Array()
+var _path_index: int = 0
+var _repath_left: float = 0.0
 var _body_layer: int = 0
 var _body_mask: int = 0
 var _head_layer: int = 0
@@ -44,6 +47,10 @@ func spawn(at: Vector3, target: Node3D) -> void:
 	_lead_time = randf_range(0.0, data.lead_time_max)
 	_move_velocity = Vector3.ZERO
 	_knockback = Vector3.ZERO
+	_path = PackedVector3Array()
+	_path_index = 0
+	# Stagger the first replan too, so a batch spawned together doesn't plan together.
+	_repath_left = randf_range(0.0, data.repath_interval_min)
 	velocity = Vector3.ZERO
 	global_position = at
 	collision_layer = _body_layer
@@ -77,8 +84,8 @@ func _physics_process(delta: float) -> void:
 	var wish_velocity: Vector3 = Vector3.ZERO
 	match _state:
 		State.CHASE:
-			wish_velocity = _get_move_direction() * _speed
-			if _get_target_distance() <= data.attack_range:
+			wish_velocity = _get_move_direction(delta) * _speed
+			if _get_target_distance() <= data.attack_range and _is_target_level():
 				_enter(State.WINDUP, data.attack_windup)
 		State.WINDUP:
 			_state_left -= delta
@@ -90,7 +97,7 @@ func _physics_process(delta: float) -> void:
 			_state_left -= delta
 			_move_velocity = _lunge_direction * data.lunge_speed
 			wish_velocity = _move_velocity
-			if not _lunge_connected and _get_target_distance() <= data.attack_reach:
+			if not _lunge_connected and _get_target_distance() <= data.attack_reach and _is_target_level():
 				_lunge_connected = true
 				_strike()
 			if _state_left <= 0.0:
@@ -115,15 +122,41 @@ func _physics_process(delta: float) -> void:
 	_update_feedback(delta)
 
 
-## The one place that decides where to walk. Swap for navigation when the arena grows cover.
-func _get_move_direction() -> Vector3:
+## The one place that decides where to walk: along a navigation route to a point ahead of the target.
+func _get_move_direction(delta: float) -> Vector3:
+	_repath_left -= delta
+	if _repath_left <= 0.0:
+		_repath_left = randf_range(data.repath_interval_min, data.repath_interval_max)
+		_path = NavigationServer3D.map_get_path(
+				get_world_3d().navigation_map, global_position, _get_aim_point(), true)
+		# The first point is where we already stand.
+		_path_index = 1
+
+	while _path_index < _path.size() and _get_flat_distance(_path[_path_index]) <= data.waypoint_reach:
+		_path_index += 1
+	if _path_index >= _path.size():
+		return _get_direction_to(_target.global_position)
+	return _get_direction_to(_path[_path_index])
+
+
+func _get_aim_point() -> Vector3:
 	var aim_point: Vector3 = _target.global_position
 	if _target is CharacterBody3D:
 		var target_velocity: Vector3 = (_target as CharacterBody3D).velocity
 		target_velocity.y = 0.0
 		var lead_scale: float = clampf(_get_target_distance() / data.lead_falloff_distance, 0.0, 1.0)
 		aim_point += target_velocity * _lead_time * lead_scale
-	return _get_direction_to(aim_point)
+	return aim_point
+
+
+func _get_flat_distance(point: Vector3) -> float:
+	var to_point: Vector3 = point - global_position
+	to_point.y = 0.0
+	return to_point.length()
+
+
+func _is_target_level() -> bool:
+	return absf(_target.global_position.y - global_position.y) <= data.attack_height_tolerance
 
 
 func _get_direction_to(point: Vector3) -> Vector3:
@@ -133,9 +166,7 @@ func _get_direction_to(point: Vector3) -> Vector3:
 
 
 func _get_target_distance() -> float:
-	var to_target: Vector3 = _target.global_position - global_position
-	to_target.y = 0.0
-	return to_target.length()
+	return _get_flat_distance(_target.global_position)
 
 
 func _enter(state: State, duration: float) -> void:

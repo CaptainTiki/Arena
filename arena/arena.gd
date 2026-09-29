@@ -12,6 +12,7 @@ extends Node3D
 
 var _kills: int = 0
 
+@onready var _level: Level = $Level
 @onready var _player: Player = $Player
 @onready var _hud: Hud = $Hud
 @onready var _impact_pool: ScenePool = $ImpactPool
@@ -33,6 +34,7 @@ func _ready() -> void:
 	_player.died.connect(_on_player_died)
 
 	_spawner.enemy_died.connect(_on_enemy_died)
+	_spawner.set_spawn_points(_level.get_spawn_points())
 	_spawner.set_elapsed(debug_start_time)
 	_spawner.target = _player
 

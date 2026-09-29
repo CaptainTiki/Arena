@@ -1,0 +1,273 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://arena/level.gd" id="1_level"]
+[ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
+
+[sub_resource type="NavigationMesh" id="NavigationMesh_level"]
+geometry_parsed_geometry_type = 1
+cell_height = 0.25
+agent_height = 2.0
+agent_max_climb = 0.25
+agent_max_slope = 35.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_stripe"]
+albedo_color = Color(0.43, 0.43, 0.45, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stripe"]
+material = SubResource("StandardMaterial3D_stripe")
+size = Vector3(100, 0.02, 10)
+
+[node name="Level" type="NavigationRegion3D"]
+navigation_mesh = SubResource("NavigationMesh_level")
+script = ExtResource("1_level")
+
+[node name="FloorStripes" type="Node3D" parent="."]
+
+[node name="Stripe1" type="MeshInstance3D" parent="FloorStripes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -40)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Stripe2" type="MeshInstance3D" parent="FloorStripes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -20)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Stripe3" type="MeshInstance3D" parent="FloorStripes"]
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Stripe4" type="MeshInstance3D" parent="FloorStripes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 20)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Stripe5" type="MeshInstance3D" parent="FloorStripes"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 40)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+
+[node name="Shell" type="Node3D" parent="."]
+
+[node name="Floor" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+size = Vector3(100, 1, 100)
+color = Color(0.34, 0.34, 0.36, 1)
+
+[node name="WallNorth" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -50.5)
+size = Vector3(42, 8, 1)
+color = Color(0.22, 0.25, 0.32, 1)
+
+[node name="WallSouth" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 50.5)
+size = Vector3(42, 8, 1)
+color = Color(0.22, 0.25, 0.32, 1)
+
+[node name="WallEast" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 50.5, 4, 0)
+size = Vector3(1, 8, 42)
+color = Color(0.22, 0.25, 0.32, 1)
+
+[node name="WallWest" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -50.5, 4, 0)
+size = Vector3(1, 8, 42)
+color = Color(0.22, 0.25, 0.32, 1)
+
+[node name="CornerNorthEast" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.5, 4, -35.5)
+size = Vector3(31, 8, 31)
+color = Color(0.28, 0.3, 0.36, 1)
+
+[node name="CornerNorthWest" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 4, -35.5)
+size = Vector3(31, 8, 31)
+color = Color(0.28, 0.3, 0.36, 1)
+
+[node name="CornerSouthEast" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.5, 4, 35.5)
+size = Vector3(31, 8, 31)
+color = Color(0.28, 0.3, 0.36, 1)
+
+[node name="CornerSouthWest" parent="Shell" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -35.5, 4, 35.5)
+size = Vector3(31, 8, 31)
+color = Color(0.28, 0.3, 0.36, 1)
+
+[node name="Centre" type="Node3D" parent="."]
+
+[node name="PillarA" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 3, -9)
+size = Vector3(3, 6, 3)
+color = Color(0.8, 0.5, 0.2, 1)
+
+[node name="PillarB" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11, 3, -6)
+size = Vector3(3, 6, 3)
+color = Color(0.8, 0.5, 0.2, 1)
+
+[node name="PillarC" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 3, 11)
+size = Vector3(3, 6, 3)
+color = Color(0.8, 0.5, 0.2, 1)
+
+[node name="PillarD" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 3, 8)
+size = Vector3(3, 6, 3)
+color = Color(0.8, 0.5, 0.2, 1)
+
+[node name="CrateNorth" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, -15)
+size = Vector3(5, 1.2, 1.5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="CrateWest" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0.6, 0)
+size = Vector3(1.5, 1.2, 5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="CrateEast" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 16, 0.6, 2)
+size = Vector3(1.5, 1.2, 5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="CrateSouth" parent="Centre" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0.6, 16)
+size = Vector3(5, 1.2, 1.5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="NorthTerrace" type="Node3D" parent="."]
+
+[node name="Terrace" parent="NorthTerrace" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -41)
+size = Vector3(40, 3, 18)
+color = Color(0.45, 0.42, 0.36, 1)
+
+[node name="RampWest" parent="NorthTerrace" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.948683, -0.316228, 0, 0.316228, 0.948683, -14, 1.247, -27.373)
+size = Vector3(6, 0.4, 9.9)
+color = Color(0.6, 0.55, 0.35, 1)
+
+[node name="RampEast" parent="NorthTerrace" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 0.948683, -0.316228, 0, 0.316228, 0.948683, 14, 1.247, -27.373)
+size = Vector3(6, 0.4, 9.9)
+color = Color(0.6, 0.55, 0.35, 1)
+
+[node name="CoverA" parent="NorthTerrace" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 3.6, -38)
+size = Vector3(5, 1.2, 1.5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="CoverB" parent="NorthTerrace" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 3.6, -44)
+size = Vector3(1.5, 1.2, 5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="EastAlleys" type="Node3D" parent="."]
+
+[node name="WallInner" parent="EastAlleys" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 30, 3, -8)
+size = Vector3(1, 6, 24)
+color = Color(0.3, 0.33, 0.45, 1)
+
+[node name="WallOuter" parent="EastAlleys" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 3, 8)
+size = Vector3(1, 6, 24)
+color = Color(0.3, 0.33, 0.45, 1)
+
+[node name="Crate" parent="EastAlleys" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0.6, -10)
+size = Vector3(3, 1.2, 1.5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="SouthBridge" type="Node3D" parent="."]
+
+[node name="Deck" parent="SouthBridge" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.8, 35)
+size = Vector3(16, 0.4, 5)
+color = Color(0.5, 0.45, 0.55, 1)
+
+[node name="RampWest" parent="SouthBridge" instance=ExtResource("2_block")]
+transform = Transform3D(0.948683, -0.316228, 0, 0.316228, 0.948683, 0, 0, 0, 1, -12.627, 1.247, 35)
+size = Vector3(9.9, 0.4, 5)
+color = Color(0.6, 0.55, 0.35, 1)
+
+[node name="RampEast" parent="SouthBridge" instance=ExtResource("2_block")]
+transform = Transform3D(0.948683, 0.316228, 0, -0.316228, 0.948683, 0, 0, 0, 1, 12.627, 1.247, 35)
+size = Vector3(9.9, 0.4, 5)
+color = Color(0.6, 0.55, 0.35, 1)
+
+[node name="Crate" parent="SouthBridge" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 45)
+size = Vector3(6, 1.2, 1.5)
+color = Color(0.7, 0.6, 0.3, 1)
+
+[node name="WestBunker" type="Node3D" parent="."]
+
+[node name="WallWest" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44, 2, 0)
+size = Vector3(1, 4, 17)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="WallNorth" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -37, 2, -8)
+size = Vector3(15, 4, 1)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="WallSouthA" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.75, 2, 8)
+size = Vector3(5.5, 4, 1)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="WallSouthB" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.75, 2, 8)
+size = Vector3(6.5, 4, 1)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="WallEastA" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2, -5)
+size = Vector3(1, 4, 7)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="WallEastB" parent="WestBunker" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2, 5)
+size = Vector3(1, 4, 7)
+color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="SpawnPoints" type="Node3D" parent="."]
+
+[node name="TerraceWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 3, -46)
+
+[node name="TerraceEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3, -46)
+
+[node name="EastNorth" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, -14)
+
+[node name="EastSouth" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, 14)
+
+[node name="SouthWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 46)
+
+[node name="SouthEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 46)
+
+[node name="WestNorth" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 0, -15)
+
+[node name="WestSouth" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 0, 15)
+
+[node name="InnerNorthEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, -17)
+
+[node name="InnerNorthWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, -17)
+
+[node name="InnerSouthEast" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 17)
+
+[node name="InnerSouthWest" type="Marker3D" parent="SpawnPoints"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 17)

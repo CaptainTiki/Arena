@@ -6,7 +6,7 @@ signal enemy_died(enemy: Enemy, hit: HitInfo)
 
 @export var waves: Array[SpawnWave] = []
 ## Spawn points closer to the target than this are skipped when any other is available.
-@export var min_spawn_distance: float = 14.0
+@export var min_spawn_distance: float = 20.0
 @export var spawn_jitter: float = 2.0
 
 ## Set by the owner. Nothing spawns until there is a target.
@@ -17,19 +17,15 @@ var _spawn_timer: float = 0.0
 var _spawn_points: Array[Marker3D] = []
 
 @onready var _pool: ScenePool = $Pool
-@onready var _points_root: Node3D = $SpawnPoints
 
 
 func _ready() -> void:
-	for child: Node in _points_root.get_children():
-		if child is Marker3D:
-			_spawn_points.append(child as Marker3D)
 	for child: Node in _pool.get_children():
 		(child as Enemy).died.connect(_on_enemy_died)
 
 
 func _physics_process(delta: float) -> void:
-	if target == null or waves.is_empty():
+	if target == null or waves.is_empty() or _spawn_points.is_empty():
 		return
 	_elapsed += delta
 	_spawn_timer -= delta
@@ -41,6 +37,11 @@ func _physics_process(delta: float) -> void:
 	var missing: int = get_target_alive() - get_alive_count()
 	for i: int in mini(wave.batch_size, missing):
 		_spawn_one()
+
+
+## Set by the owner, from whichever level is loaded.
+func set_spawn_points(points: Array[Marker3D]) -> void:
+	_spawn_points = points
 
 
 func get_elapsed() -> float:

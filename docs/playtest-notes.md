@@ -43,3 +43,28 @@ Findings per build step, kept so the six kickoff questions can be answered hones
 * **Pressure:** real now. Had to dodge, move, run and gain distance to shoot; health went down constantly. Possibly a bit too harsh, but better on this side. Leave for the tuning pass (step 8).
 * **Hitstop:** not noticeable even on headshot kills, and that is fine. Tester dislikes hitstop as a game feel in general, especially when it fires constantly. Do not make it stronger; candidate for removal.
 * Early read on question 1 (does first-person horde combat feel good): yes, once enemies can actually threaten a moving player.
+
+## Arena rework, first pass (2026-09-28, not yet playtested)
+
+Built in response to the step 1 and step 2 arena notes. Not one of the kickoff doc's numbered steps.
+
+* 100 x 100 m cross shape instead of a 40 x 60 m rectangle; the four corners are solid masses.
+* Centre: open ground with four pillars and four low crates (can shoot over, cannot walk through).
+* North: terrace 3 m up, two ramps.
+* East: two tall staggered walls making an S-shaped alley with broken sight lines.
+* South: bridge 3 m up with a ramp at each end; walkable underneath.
+* West: walled bunker room with two doorways.
+* Enemies now path with a navigation mesh, baked on load, instead of running in a straight line.
+* Open questions for the playtest: is it big enough that crossing is a decision; do the terrace and bridge feel like positions worth holding; is the bunker a hiding spot or a death trap.
+
+## Arena rework, playtest (2026-09-28)
+
+* **Overall:** feels good. Likes the levels, the movement and the blockers. Where to move is now a real decision. Update on question 5: a flat arena was boring, this one is not.
+* **Crossing:** still relatively easy to get anywhere. The missing pressure should come from enemies rather than more geometry.
+* **Enemy variety wanted** (kickoff doc lists this as out of scope; tester now wants it):
+  * Small units that stop you standing still (the current grunt).
+  * Heavy: slow, meaty, area denial, big damage if you stay close too long.
+  * Shooter: ranged, so leaving cover hurts and crossing has to be quick.
+* **Terrace and bridge:** not worth holding, just places to pass through. Idea: hold-the-zone mechanic, stay within range of something for X seconds and it drops Y. Could be a future route to ammo or health. Fits as a fourth sponsor trigger.
+* **Bunker:** not found during the playtest (west arm). Concern: a room without two exits is a death trap. It has two doorways, east and south.
+* **Pathing:** no enemies seen getting stuck.
