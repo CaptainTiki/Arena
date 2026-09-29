@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_data")
 attack_style = 1
-max_health = 140.0
+max_health = 280.0
 move_speed = 3.4
 speed_variance = 0.05
 acceleration = 12.0

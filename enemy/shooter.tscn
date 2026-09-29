@@ -17,14 +17,14 @@ resource_local_to_scene = true
 albedo_color = Color(0.1, 0.6, 0.6, 1)
 
 [sub_resource type="SphereMesh" id="SphereMesh_head"]
-radius = 0.25
-height = 0.5
+radius = 0.18
+height = 0.36
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_head"]
 albedo_color = Color(0.95, 0.8, 0.2, 1)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_head"]
-radius = 0.25
+radius = 0.18
 
 [node name="Shooter" type="CharacterBody3D"]
 collision_layer = 4
