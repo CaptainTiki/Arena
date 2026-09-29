@@ -1,12 +1,19 @@
 class_name SponsorMeter
 extends Control
-## One sponsor's row on the HUD: name, what they want, standing toward the next drop, latest reaction.
+## One sponsor's row on the HUD: name, standing toward the next drop, latest reaction.
+## Out of sight until the sponsor likes something; then it shows, holds and fades.
+## The debug HUD keeps every row up, with what the sponsor wants under it.
 
 @export var liked_color: Color = Color(1.0, 1.0, 1.0)
 @export var disliked_color: Color = Color(1.0, 0.3, 0.3)
-@export var reaction_time: float = 1.2
+@export var hold_time: float = 1.0
+@export var fade_time: float = 1.5
+## Row height with and without the line saying what the sponsor wants.
+@export var height: float = 32.0
+@export var debug_height: float = 50.0
 
-var _reaction_tween: Tween
+var _debug: bool = false
+var _fade_tween: Tween
 
 @onready var _name_label: Label = $NameLabel
 @onready var _wants_label: Label = $WantsLabel
@@ -21,16 +28,34 @@ func setup(sponsor: SponsorData) -> void:
 	_bar.modulate = sponsor.color
 	_bar.value = 0.0
 	_reaction_label.text = ""
+	modulate.a = 1.0 if _debug else 0.0
+
+
+func set_debug(debug: bool) -> void:
+	_debug = debug
+	_wants_label.visible = debug
+	custom_minimum_size.y = debug_height if debug else height
+	if _fade_tween != null:
+		_fade_tween.kill()
+	modulate.a = 1.0 if debug else 0.0
 
 
 func set_progress(progress: float) -> void:
 	_bar.value = progress
 
 
+## Brings the row up, then lets it fade.
+func pop() -> void:
+	if _debug:
+		return
+	if _fade_tween != null:
+		_fade_tween.kill()
+	modulate.a = 1.0
+	_fade_tween = create_tween()
+	_fade_tween.tween_interval(hold_time)
+	_fade_tween.tween_property(self, ^"modulate:a", 0.0, fade_time)
+
+
 func show_reaction(reason: String, positive: bool) -> void:
-	if _reaction_tween != null:
-		_reaction_tween.kill()
 	_reaction_label.text = ("+ " if positive else "- ") + reason
 	_reaction_label.modulate = liked_color if positive else disliked_color
-	_reaction_tween = create_tween()
-	_reaction_tween.tween_property(_reaction_label, ^"modulate:a", 0.0, reaction_time)

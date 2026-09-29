@@ -23,6 +23,8 @@ enum Type {
 @export var enemy_damage_scale: float = 1.0
 ## EXTERMINATION: the named enemies, in the order they arrive.
 @export var roster: Array[RosterWave] = []
+## The whole roster is in the arena from the start, spread out and unaware. Off brings the waves in on the clock.
+@export var roster_on_floor: bool = true
 ## SURVIVAL and SCAVENGER: the density ramp.
 @export var ramp: Array[SpawnWave] = []
 
@@ -62,6 +64,8 @@ func get_enemy_summary() -> String:
 		parts.append("%d shooter%s" % [shooters, "" if shooters == 1 else "s"])
 	if heavies > 0:
 		parts.append("%d heav%s" % [heavies, "y" if heavies == 1 else "ies"])
+	if roster_on_floor:
+		return ", ".join(parts) + ", already in the arena"
 	return ", ".join(parts) + " in %d wave%s" % [roster.size(), "" if roster.size() == 1 else "s"]
 
 

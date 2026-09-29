@@ -1,7 +1,8 @@
 class_name Spawner
 extends Node3D
 ## Puts enemies on the floor. Runs either a density ramp (keep N alive, rising over time)
-## or a roster (named groups that arrive on a schedule, and early if the floor is cleared).
+## or a roster (named groups, either all on the floor from the start or arriving on a schedule).
+## Also passes noises on to the enemies near enough to hear them.
 
 signal enemy_died(enemy: Enemy, hit: HitInfo)
 signal enemy_acted(enemy: Enemy, action: StringName)
@@ -13,6 +14,18 @@ signal enemy_acted(enemy: Enemy, action: StringName)
 @export var roster_stagger: float = 0.4
 ## A cleared floor brings the next roster wave forward after this pause.
 @export var early_arrival_delay: float = 3.0
+## A roster put on the floor starts at least this far from the target.
+@export var floor_min_distance: float = 30.0
+## A roster put on the floor keeps its enemies at least this far from each other.
+@export var floor_spacing: float = 8.0
+## Tries at finding a spot on the floor before settling for a spawn point. Most random points land on
+## the roofs of the corner masses, which are navigation mesh too, so it takes a lot of tries.
+@export var floor_attempts: int = 120
+## A roster put on the floor starts out of the target's sight: nothing between them and it on these layers
+## rules a spot out.
+@export_flags_3d_physics var sight_mask: int = 1
+## Seconds between counts of who is engaged, to decide who flanks.
+@export var flank_interval: float = 0.5
 
 ## Set by the owner. Nothing spawns until there is a target.
 var target: Node3D
@@ -22,6 +35,8 @@ var damage_scale: float = 1.0
 var _ramp: Array[SpawnWave] = []
 var _roster: Array[RosterWave] = []
 var _next_roster_wave: int = 0
+var _on_floor: bool = false
+var _flank_left: float = 0.0
 var _pending: Array[ScenePool] = []
 var _stagger_left: float = 0.0
 var _clear_time: float = 0.0
@@ -55,21 +70,44 @@ func start_ramp(waves: Array[SpawnWave]) -> void:
 	_roster = []
 
 
-func start_roster(waves: Array[RosterWave]) -> void:
+## `on_floor` puts every wave in the arena at once, spread out, instead of on the clock.
+func start_roster(waves: Array[RosterWave], on_floor: bool = false) -> void:
 	_roster = waves
 	_ramp = []
 	_next_roster_wave = 0
+	_on_floor = on_floor
 	_pending.clear()
+
+
+## Something loud at `at`. Every enemy within `radius` goes to look.
+func make_noise(at: Vector3, radius: float, cause: StringName) -> void:
+	for enemy: Enemy in get_alive_enemies():
+		if enemy.global_position.distance_to(at) <= radius * enemy.data.hearing_scale:
+			enemy.hear(at, cause)
 
 
 func _physics_process(delta: float) -> void:
 	if target == null or _spawn_points.is_empty():
 		return
+	if not _is_floor_ready():
+		return
 	_elapsed += delta
+	_tick_flanking(delta)
 	if not _roster.is_empty():
 		_tick_roster(delta)
 	elif not _ramp.is_empty():
 		_tick_ramp(delta)
+
+
+## The navigation mesh is baked on load and reaches the server a tick or two later.
+## Until then the map is empty, and the nearest floor to anywhere is the origin.
+func _is_floor_ready() -> bool:
+	var map: RID = get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(map) == 0:
+		return false
+	var anchor: Vector3 = _spawn_points[0].global_position
+	var nearest: Vector3 = NavigationServer3D.map_get_closest_point(map, anchor)
+	return nearest.distance_to(anchor) < 2.0
 
 
 ## Set by the owner, from whichever level is loaded.
@@ -144,10 +182,41 @@ func _tick_ramp(delta: float) -> void:
 			# That type is at its cap; fall back to the first pool.
 			enemy = _pools[0].acquire() as Enemy
 		if enemy != null:
-			_place(enemy)
+			_place(enemy, _pick_spawn_point().global_position)
+
+
+func _tick_flanking(delta: float) -> void:
+	_flank_left -= delta
+	if _flank_left > 0.0:
+		return
+	_flank_left = flank_interval
+	var pack: Array[Enemy] = []
+	for enemy: Enemy in get_alive_enemies():
+		if enemy.data.flank_pack_size > 0 and enemy.is_engaged():
+			pack.append(enemy)
+	for enemy: Enemy in pack:
+		enemy.set_flanking(pack.size() >= enemy.data.flank_pack_size)
+
+
+func _tick_floor_roster() -> void:
+	while _next_roster_wave < _roster.size():
+		_queue_wave(_roster[_next_roster_wave])
+		_next_roster_wave += 1
+	# A full pool means that type is at its cap; the rest stay queued until one dies.
+	var waiting: Array[ScenePool] = []
+	for pool: ScenePool in _pending:
+		var enemy: Enemy = pool.acquire() as Enemy
+		if enemy == null:
+			waiting.append(pool)
+		else:
+			_place(enemy, _pick_floor_point(), 0.0)
+	_pending = waiting
 
 
 func _tick_roster(delta: float) -> void:
+	if _on_floor:
+		_tick_floor_roster()
+		return
 	var floor_clear: bool = get_alive_count() == 0 and _pending.is_empty()
 	_clear_time = _clear_time + delta if floor_clear else 0.0
 
@@ -170,7 +239,7 @@ func _tick_roster(delta: float) -> void:
 		var enemy: Enemy = _pending[index].acquire() as Enemy
 		if enemy != null:
 			_pending.remove_at(index)
-			_place(enemy)
+			_place(enemy, _pick_spawn_point().global_position)
 			return
 
 
@@ -193,11 +262,47 @@ func _get_current_ramp_wave() -> SpawnWave:
 	return _ramp[-1]
 
 
-func _place(enemy: Enemy) -> void:
-	var jitter: Vector3 = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * spawn_jitter
+func _place(enemy: Enemy, at: Vector3, jitter_scale: float = 1.0) -> void:
+	var jitter: Vector3 = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * spawn_jitter * jitter_scale
 	_next_id += 1
 	enemy.id = _next_id
-	enemy.spawn(_pick_spawn_point().global_position + jitter, target, health_scale, damage_scale)
+	enemy.spawn(at + jitter, target, health_scale, damage_scale)
+
+
+## Somewhere on the walkable floor, away from the target and from everything already placed.
+func _pick_floor_point() -> Vector3:
+	var map: RID = get_world_3d().navigation_map
+	var alive: Array[Enemy] = get_alive_enemies()
+	var anchor: Vector3 = _spawn_points[0].global_position
+	for attempt: int in floor_attempts:
+		var point: Vector3 = NavigationServer3D.map_get_random_point(map, 1, true)
+		if point.distance_to(target.global_position) < floor_min_distance:
+			continue
+		var crowded: bool = false
+		for enemy: Enemy in alive:
+			if enemy.global_position.distance_to(point) < floor_spacing:
+				crowded = true
+				break
+		if crowded or _is_in_sight(point):
+			continue
+		# The tops of crates and pillars are floor too, with no way down.
+		var route: PackedVector3Array = NavigationServer3D.map_get_path(map, anchor, point, true)
+		if route.is_empty() or route[-1].distance_to(point) > 1.0:
+			continue
+		return point
+	return _pick_spawn_point().global_position
+
+
+## Checked at chest and at eye height, so neither can see the other over low cover.
+func _is_in_sight(point: Vector3) -> bool:
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	var heights: Array[float] = [1.0, 1.6]
+	for height: float in heights:
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+				point + Vector3.UP * 1.4, target.global_position + Vector3.UP * height, sight_mask)
+		if space.intersect_ray(query).is_empty():
+			return true
+	return false
 
 
 func _pick_pool(wave: SpawnWave) -> ScenePool:

@@ -43,9 +43,12 @@ var _target_pods: int = 0
 var _hold_zones: Array[HoldZone] = []
 var _active_zone: int = 0
 var _was_holding: bool = false
+var _zone_noise_left: float = 0.0
 
 @onready var _level: Level = $Level
 @onready var _player: Player = $Player
+## Where the player starts, facing the way the marker faces.
+@onready var _player_spawn: Marker3D = $PlayerSpawn
 @onready var _hud: Hud = $Hud
 @onready var _summary: RunSummary = $RunSummary
 @onready var _sfx: Sfx = $Sfx
@@ -62,6 +65,8 @@ var _was_holding: bool = false
 
 
 func _ready() -> void:
+	_player.global_position = _player_spawn.global_position
+	_player.rotation.y = _player_spawn.global_rotation.y
 	_book_contract()
 
 	_booking = ask_for_contract and not _session_booked and debug_contract == null and contracts.size() > 1
@@ -94,7 +99,7 @@ func _ready() -> void:
 	_spawner.health_scale = _contract.enemy_health_scale
 	_spawner.damage_scale = _contract.enemy_damage_scale
 	if _contract.type == ContractData.Type.EXTERMINATION:
-		_spawner.start_roster(_contract.roster)
+		_spawner.start_roster(_contract.roster, _contract.roster_on_floor)
 	else:
 		_spawner.start_ramp(_contract.ramp)
 		_spawner.set_elapsed(debug_start_time)
@@ -124,6 +129,8 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _intent.consume_debug_toggle():
+		_hud.toggle_debug()
 	if _booking:
 		_tick_booking()
 		return
@@ -147,6 +154,7 @@ func _physics_process(delta: float) -> void:
 		if holding != _was_holding:
 			_was_holding = holding
 			_log.log_player("zone_enter" if holding else "zone_exit", {"zone": _active_zone})
+		_tick_zone_noise(holding, delta)
 
 	if _is_goal_met():
 		_end_run.call_deferred(Outcome.WON)
@@ -310,6 +318,17 @@ func _tick_pity(delta: float) -> void:
 		_sfx.play_pod_alarm()
 
 
+## A held zone calls out for as long as it is held.
+func _tick_zone_noise(holding: bool, delta: float) -> void:
+	if not holding:
+		_zone_noise_left = 0.0
+		return
+	_zone_noise_left -= delta
+	if _zone_noise_left <= 0.0:
+		_zone_noise_left = run.zone_noise_interval
+		_spawner.make_noise(_hold_zones[_active_zone].global_position, run.zone_noise_radius, &"zone")
+
+
 ## Only one hold zone is live at a time.
 func _activate_zone(index: int) -> void:
 	if _hold_zones.is_empty():
@@ -330,6 +349,7 @@ func _on_weapon_shot_fired(weapon: Weapon, hit: HitInfo, pellets_landed: int, da
 	_stats.record_shot(hit)
 	_log.log_shot(weapon, hit, pellets_landed, damage_dealt)
 	_sponsors.on_shot(hit)
+	_spawner.make_noise(_player.global_position, weapon.get_stats().noise_radius, &"gunfire")
 	if hit == null or not hit.landed():
 		return
 	_hud.flash_hit_marker(hit.is_headshot)
@@ -379,8 +399,14 @@ func _on_player_died() -> void:
 
 func _on_enemy_acted(enemy: Enemy, action: StringName) -> void:
 	var extra: Dictionary = {}
-	if action != &"spawn":
-		extra["attack"] = enemy.get_attack_name()
+	match action:
+		&"spawn", &"lost", &"search", &"calm":
+			pass
+		&"alert":
+			extra["cause"] = String(enemy.get_alert_cause())
+			extra["state"] = enemy.get_state_name()
+		_:
+			extra["attack"] = enemy.get_attack_name()
 	_log.log_enemy("enemy_%s" % action, enemy, extra)
 
 

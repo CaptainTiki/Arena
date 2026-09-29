@@ -29,7 +29,7 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 |-|-|
 | `arena/` | `Arena` (the spine), `Level`, blocks, hold zones, stations (ammo or health) |
 | `player/`, `weapon/` | Player, intent, pistol and shotgun (one `Weapon` script, `WeaponData` sets pellets and spread) |
-| `enemy/` | One `Enemy` script for all types; `EnemyData` picks the attack style. Grunt, heavy, shooter, projectile |
+| `enemy/` | One `Enemy` script for all types; `EnemyData` picks the attack style and sets the senses. Grunt, heavy, shooter, projectile |
 | `spawn/` | `Spawner` (density ramp or named roster) and ramp waves |
 | `contract/` | `ContractData`, `RosterWave`, the three contracts |
 | `sponsor/`, `pod/` | Sponsor scoring and the pods they drop |
@@ -59,25 +59,28 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 ## Where things stand
 
-As of 2026-09-29. Playable now: three contracts chosen from a picker (number keys at launch and on the summary), box robots with weak points (grunt chest eye, shooter lens that opens while it attacks, heavy core on its back), pistol and shotgun carried together (`1`, `2`, `Q` or wheel), stations that stock ammo (blue) or health (red), four sponsors, parachute pods, run summary with cash and reputation.
+As of 2026-09-29. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. Order: AI, economy and loadout, contract ladder, base. For the slice, batches can be bigger; stop when a decision needs the tester.
 
-Last change, committed but not yet played: shotgun raised to 12 pellets at 14 damage in a 7 degree cone, so half a blast kills a grunt.
+Playable now: three contracts chosen from a picker (number keys at launch and on the summary), box robots with weak points (grunt chest eye, shooter lens that opens while it attacks, heavy core on its back), pistol and shotgun carried together (`1`, `2`, `Q` or wheel), stations that stock ammo (blue) or health (red), four sponsors, parachute pods, run summary with cash and reputation.
 
-Open findings from the logs:
+Last change, built but not yet played or committed (slice section 1, plus two asides):
 
-* The dash has dodged one hit in every logged run put together. It is not working as a dodge.
-* Shooters are the main source of damage on the easier contracts.
-* Survival contracts keep raising how many are alive whether or not the player is keeping up; that is where control is lost.
-* The HUD is far too big. Agreed to shrink it and move the verbose parts behind a debug key (`~`). Not started.
+* **Perception AI.** Enemies idle, get alerted, search and engage; sight cone, hearing of gunfire and of a held Warden zone; `?` and `!` marks; grunts flank, shooters back off along the floor. Extermination rosters start on the floor. `always_aware` on an `EnemyData` brings the old behaviour back.
+* **HUD shrunk.** Sponsor rows pop in and fade; `~` is the debug HUD.
+* **Shotgun bracketed high** on purpose: 16 pellets at 18, with scarce shells.
 
-Agreed direction, not built:
+Open findings:
 
-* **Perception AI.** All enemies on the floor from the start; sight range and cone, hearing that gives a vague direction, searching. Gunfire and a held Warden zone draw them in. Today every enemy knows where the player is from spawn.
-* **Favour.** Paid at the end of a run, nothing on a loss, scaled by a contract difficulty multiplier. Sponsors can request a specific fight for double. Needs bigger numbers than the current 1 to 3 per run.
-* **Pods become rare.** Thrown for a specific feat per sponsor, not like candy at a parade. Current drop rates are test tuning.
-* **Stations as vending machines.** Spend favour or cash for health or ammo; not every station stocks everything. Health is free for now.
-* **An easy contract** so a struggling player has somewhere to step down to.
+* The dash has dodged one hit in every logged run put together. Parked until people other than the tester have played; the fallback is a jump and a crouch.
+* Survival contracts keep raising how many are alive whether or not the player is keeping up. The slice doc's fix: cap the alive count and stretch the ramp time.
+* The navigation mesh covers the roofs and insides of the corner masses. Harmless so far.
 
-Order after that, unchanged: new enemy types (rifles and shotguns), a walkable home base, then the economy.
+Still to build for the slice:
+
+* **Economy and loadout.** `ItemData`, two weapon slots, armour, a stim, the .357 for favour. The shotgun stops being free.
+* **Favour.** Paid on a win only, from sponsor score, scaled by the contract; tens per fight. One contract carries a sponsor request for double.
+* **Pods become rare** and **stations become vending machines.**
+* **Contract ladder.** Five contracts in four tiers, with an easy one to step down to.
+* **The base.** One room, four pedestals with text panels. A `Game` scene owns `Base` and `Arena`.
 
 Reputation perks shown on the summary are teasers only; none are implemented.

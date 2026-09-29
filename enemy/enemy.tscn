@@ -74,3 +74,14 @@ shape = SubResource("SphereShape3D_weak")
 [node name="Mesh" type="MeshInstance3D" parent="WeakPoints/Eye"]
 cast_shadow = 0
 mesh = SubResource("SphereMesh_weak")
+
+[node name="Mark" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.25, 0)
+visible = false
+pixel_size = 0.01
+billboard = 1
+modulate = Color(1, 0.85, 0.1, 1)
+outline_modulate = Color(0, 0, 0, 1)
+text = "?"
+font_size = 96
+outline_size = 24

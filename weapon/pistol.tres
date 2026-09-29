@@ -1,24 +1,9 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://dcuasr4cl6t7b"]
 
-[ext_resource type="Script" path="res://weapon/weapon_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://csf3wrb5ilswj" path="res://weapon/weapon_data.gd" id="1_data"]
 
 [resource]
 script = ExtResource("1_data")
 display_name = "PISTOL"
 damage = 10.0
 headshot_multiplier = 8.0
-max_range = 200.0
-knockback = 4.0
-headshot_knockback_multiplier = 2.0
-mag_size = 12
-starting_reserve = 24
-reload_time = 1.4
-reload_on_dry_fire = true
-fire_interval = 0.16
-recoil_pitch_degrees = 3.4
-recoil_yaw_degrees = 1.5
-recoil_snap_speed = 45.0
-recoil_recover_speed = 5.5
-kick_distance = 0.12
-kick_recover_speed = 14.0
-reload_dip = 0.3

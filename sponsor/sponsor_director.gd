@@ -5,8 +5,8 @@ extends Node
 signal drop_earned(sponsor: SponsorData, pod: PodData)
 ## Progress runs 0.0 to 1.0 toward the sponsor's next drop.
 signal standing_changed(index: int, progress: float)
-## A discrete thing the sponsor liked or disliked, worded for the player.
-signal sponsor_reacted(index: int, reason: String, positive: bool)
+## A discrete thing the sponsor liked or disliked, worded for the player. `minor` is small change.
+signal sponsor_reacted(index: int, reason: String, positive: bool, minor: bool)
 
 @export var sponsors: Array[SponsorData] = []
 
@@ -47,7 +47,7 @@ func set_holding(holding: bool) -> void:
 	_holding = holding
 	for index: int in sponsors.size():
 		if sponsors[index].trigger == SponsorData.Trigger.HOLD_ZONE:
-			sponsor_reacted.emit(index, "HOLDING" if holding else "LEFT THE ZONE", holding)
+			sponsor_reacted.emit(index, "HOLDING" if holding else "LEFT THE ZONE", holding, false)
 
 
 ## Call for every shot fired. `hit` is null or not landed for a miss.
@@ -62,7 +62,7 @@ func on_shot(hit: HitInfo) -> void:
 		elif hit.is_headshot:
 			_add(index, sponsor.score_per_event, "HEADSHOT")
 		else:
-			_add(index, sponsor.minor_score, "HIT")
+			_add(index, sponsor.minor_score, "HIT", true)
 
 
 func on_kill(_hit: HitInfo) -> void:
@@ -92,11 +92,11 @@ func get_drop_count(index: int) -> int:
 	return _drops[index]
 
 
-func _add(index: int, amount: float, reason: String) -> void:
+func _add(index: int, amount: float, reason: String, minor: bool = false) -> void:
 	var sponsor: SponsorData = sponsors[index]
 	_scores[index] = maxf(_scores[index] + amount, 0.0)
 	if not reason.is_empty():
-		sponsor_reacted.emit(index, reason, amount > 0.0)
+		sponsor_reacted.emit(index, reason, amount > 0.0, minor)
 	while _scores[index] >= _thresholds[index]:
 		_scores[index] -= _thresholds[index]
 		_thresholds[index] *= sponsor.threshold_growth

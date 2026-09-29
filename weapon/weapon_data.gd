@@ -44,3 +44,7 @@ extends Resource
 @export var kick_distance: float = 0.12
 @export var kick_recover_speed: float = 14.0
 @export var reload_dip: float = 0.3
+
+@export_group("Noise")
+## Enemies within this distance hear the shot and come to look.
+@export var noise_radius: float = 40.0

@@ -1,27 +1,27 @@
-[gd_scene load_steps=33 format=3]
+[gd_scene format=3 uid="uid://cn5bf1wgixvn6"]
 
-[ext_resource type="Script" path="res://arena/arena.gd" id="1_arena"]
+[ext_resource type="Script" uid="uid://cv0a8o3jtdm5e" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://hud/hud.tscn" id="3_hud"]
-[ext_resource type="Script" path="res://combat/scene_pool.gd" id="4_pool"]
+[ext_resource type="Script" uid="uid://dxcdxbv5as6h5" path="res://combat/scene_pool.gd" id="4_pool"]
 [ext_resource type="PackedScene" path="res://combat/impact_marker.tscn" id="5_marker"]
 [ext_resource type="PackedScene" path="res://enemy/enemy.tscn" id="6_enemy"]
-[ext_resource type="Script" path="res://spawn/spawner.gd" id="7_spawner"]
-[ext_resource type="Script" path="res://contract/contract_data.gd" id="8_contract"]
+[ext_resource type="Script" uid="uid://d0qhsrr4t28ij" path="res://spawn/spawner.gd" id="7_spawner"]
+[ext_resource type="Script" uid="uid://cxs5nt4avi8du" path="res://contract/contract_data.gd" id="8_contract"]
 [ext_resource type="Resource" path="res://contract/first_blood.tres" id="9_first_blood"]
 [ext_resource type="Resource" path="res://contract/wardens_errand.tres" id="10_errand"]
 [ext_resource type="Resource" path="res://contract/long_night.tres" id="11_long_night"]
 [ext_resource type="PackedScene" path="res://audio/sfx.tscn" id="12_sfx"]
 [ext_resource type="Resource" path="res://feel/feel_default.tres" id="13_feel"]
-[ext_resource type="Script" path="res://feel/hitstop.gd" id="14_hitstop"]
+[ext_resource type="Script" uid="uid://c7fqrvgdtsriq" path="res://feel/hitstop.gd" id="14_hitstop"]
 [ext_resource type="PackedScene" path="res://feel/damage_number.tscn" id="15_number"]
 [ext_resource type="PackedScene" path="res://arena/level.tscn" id="16_level"]
-[ext_resource type="Script" path="res://sponsor/sponsor_director.gd" id="17_director"]
-[ext_resource type="Script" path="res://sponsor/sponsor_data.gd" id="18_sponsor"]
+[ext_resource type="Script" uid="uid://hjuyuyx1vk8u" path="res://sponsor/sponsor_director.gd" id="17_director"]
+[ext_resource type="Script" uid="uid://k3k2w7aoat8i" path="res://sponsor/sponsor_data.gd" id="18_sponsor"]
 [ext_resource type="Resource" path="res://sponsor/marksman.tres" id="19_marksman"]
 [ext_resource type="Resource" path="res://sponsor/butcher.tres" id="20_butcher"]
 [ext_resource type="Resource" path="res://sponsor/purist.tres" id="21_purist"]
-[ext_resource type="Script" path="res://pod/pod_dropper.gd" id="22_dropper"]
+[ext_resource type="Script" uid="uid://q3cmlmt7iu5r" path="res://pod/pod_dropper.gd" id="22_dropper"]
 [ext_resource type="PackedScene" path="res://pod/pod.tscn" id="23_pod"]
 [ext_resource type="Resource" path="res://pod/pod_pity_ammo.tres" id="24_pity"]
 [ext_resource type="PackedScene" path="res://enemy/heavy.tscn" id="25_heavy"]
@@ -30,7 +30,7 @@
 [ext_resource type="Resource" path="res://sponsor/warden.tres" id="28_warden"]
 [ext_resource type="Resource" path="res://run/run_default.tres" id="29_run"]
 [ext_resource type="PackedScene" path="res://hud/run_summary.tscn" id="30_summary"]
-[ext_resource type="Script" path="res://run/run_log.gd" id="31_log"]
+[ext_resource type="Script" uid="uid://cl7xovmsfhpiw" path="res://run/run_log.gd" id="31_log"]
 
 [sub_resource type="Environment" id="Environment_arena"]
 background_mode = 1
@@ -39,85 +39,88 @@ ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.5
 
-[node name="Arena" type="Node3D"]
+[node name="Arena" type="Node3D" unique_id=1962489365]
 script = ExtResource("1_arena")
 feel = ExtResource("13_feel")
 run = ExtResource("29_run")
 contracts = Array[ExtResource("8_contract")]([ExtResource("9_first_blood"), ExtResource("10_errand"), ExtResource("11_long_night")])
 pity_pod = ExtResource("24_pity")
 
-[node name="Sfx" parent="." instance=ExtResource("12_sfx")]
+[node name="Sfx" parent="." unique_id=1323798051 instance=ExtResource("12_sfx")]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=630229304]
 environment = SubResource("Environment_arena")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=357074294]
 transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 20, 0)
 shadow_enabled = true
 directional_shadow_max_distance = 140.0
 
-[node name="RunLog" type="Node" parent="."]
+[node name="RunLog" type="Node" parent="." unique_id=224942833]
 script = ExtResource("31_log")
 
-[node name="Level" parent="." instance=ExtResource("16_level")]
+[node name="Level" parent="." unique_id=2002186506 instance=ExtResource("16_level")]
 
-[node name="Hitstop" type="Node" parent="."]
+[node name="Hitstop" type="Node" parent="." unique_id=1317017655]
 process_mode = 3
 script = ExtResource("14_hitstop")
 
-[node name="DamageNumberPool" type="Node" parent="."]
+[node name="DamageNumberPool" type="Node" parent="." unique_id=1505539449]
 script = ExtResource("4_pool")
 scene = ExtResource("15_number")
 size = 32
 recycle_oldest = true
 
-[node name="ImpactPool" type="Node" parent="."]
+[node name="ImpactPool" type="Node" parent="." unique_id=841212719]
 script = ExtResource("4_pool")
 scene = ExtResource("5_marker")
 size = 24
 recycle_oldest = true
 
-[node name="Spawner" type="Node3D" parent="."]
+[node name="Spawner" type="Node3D" parent="." unique_id=207555553]
 script = ExtResource("7_spawner")
 
-[node name="Pools" type="Node" parent="Spawner"]
+[node name="Pools" type="Node" parent="Spawner" unique_id=50628322]
 
-[node name="Grunts" type="Node" parent="Spawner/Pools"]
+[node name="Grunts" type="Node" parent="Spawner/Pools" unique_id=1338910558]
 script = ExtResource("4_pool")
 scene = ExtResource("6_enemy")
 size = 64
 
-[node name="Heavies" type="Node" parent="Spawner/Pools"]
+[node name="Heavies" type="Node" parent="Spawner/Pools" unique_id=1875290786]
 script = ExtResource("4_pool")
 scene = ExtResource("25_heavy")
 size = 3
 
-[node name="Shooters" type="Node" parent="Spawner/Pools"]
+[node name="Shooters" type="Node" parent="Spawner/Pools" unique_id=1074451355]
 script = ExtResource("4_pool")
 scene = ExtResource("26_shooter")
 size = 10
 
-[node name="Projectiles" type="Node" parent="Spawner"]
+[node name="Projectiles" type="Node" parent="Spawner" unique_id=245384922]
 script = ExtResource("4_pool")
 scene = ExtResource("27_projectile")
 size = 48
 recycle_oldest = true
 
-[node name="SponsorDirector" type="Node" parent="."]
+[node name="SponsorDirector" type="Node" parent="." unique_id=1125234218]
 script = ExtResource("17_director")
 sponsors = Array[ExtResource("18_sponsor")]([ExtResource("19_marksman"), ExtResource("20_butcher"), ExtResource("21_purist"), ExtResource("28_warden")])
 
-[node name="PodDropper" type="Node3D" parent="."]
+[node name="PodDropper" type="Node3D" parent="." unique_id=1118466397]
 script = ExtResource("22_dropper")
 
-[node name="Pool" type="Node" parent="PodDropper"]
+[node name="Pool" type="Node" parent="PodDropper" unique_id=1925369509]
 script = ExtResource("4_pool")
 scene = ExtResource("23_pod")
 size = 12
 recycle_oldest = true
 
-[node name="Player" parent="." instance=ExtResource("2_player")]
+[node name="Player" parent="." unique_id=1984652765 instance=ExtResource("2_player")]
 
-[node name="Hud" parent="." instance=ExtResource("3_hud")]
+[node name="Hud" parent="." unique_id=1888033308 instance=ExtResource("3_hud")]
 
-[node name="RunSummary" parent="." instance=ExtResource("30_summary")]
+[node name="RunSummary" parent="." unique_id=428558019 instance=ExtResource("30_summary")]
+
+[node name="PlayerSpawn" type="Marker3D" parent="." unique_id=1660185154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 44.77785, 0.42490745, 15.939775)

@@ -10,3 +10,9 @@ extends Resource
 ## A sponsor's reputation rises by one for every this many pods it dropped during the fight.
 @export var drops_per_reputation: int = 2
 @export var max_reputation_gain: int = 3
+
+@export_group("Hold Zone Noise")
+## Standing in the active hold zone is heard this far from the zone.
+@export var zone_noise_radius: float = 45.0
+## Seconds between one call from a held zone and the next.
+@export var zone_noise_interval: float = 1.0

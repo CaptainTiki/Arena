@@ -7,10 +7,12 @@ signal released
 signal died(enemy: Enemy, hit: HitInfo)
 ## The owner turns this into a projectile.
 signal projectile_fired(enemy: Enemy, origin: Vector3, shot_velocity: Vector3)
-## Reported for the run log: &"spawn", &"windup" and &"attack".
+## Reported for the run log: &"spawn", &"windup", &"attack", &"alert", &"lost", &"search" and &"calm".
 signal acted(enemy: Enemy, action: StringName)
 
-enum State { CHASE, WINDUP, LUNGE, RECOVER, DYING }
+## IDLE knows nothing. ALERTED is walking to a last-known position, SEARCH is looking around it.
+## CHASE and everything after it is engaged: it has seen the target.
+enum State { IDLE, ALERTED, SEARCH, CHASE, WINDUP, LUNGE, RECOVER, DYING }
 ## What the current windup is building toward.
 enum Attack { LUNGE, CHARGE, SLAM, SHOT }
 
@@ -39,6 +41,24 @@ var _lunge_connected: bool = false
 var _path: PackedVector3Array = PackedVector3Array()
 var _path_index: int = 0
 var _repath_left: float = 0.0
+## True once the route in hand has been walked to its end.
+var _path_done: bool = false
+var _sees_target: bool = false
+var _look_left: float = 0.0
+var _unseen_time: float = 0.0
+## Where the target was last seen or heard.
+var _last_known: Vector3 = Vector3.ZERO
+## Where it is walking to while it is not engaged.
+var _goal: Vector3 = Vector3.ZERO
+var _has_goal: bool = false
+var _goal_left: float = 0.0
+var _pause_left: float = 0.0
+## What raised it last: &"sight", &"gunfire", &"zone" or &"hit".
+var _alert_cause: StringName = &""
+var _flanking: bool = false
+var _flank_angle: float = 0.0
+## Compass bearing, from the target, of the side this one comes in from.
+var _flank_bearing: float = 0.0
 var _body_layer: int = 0
 var _body_mask: int = 0
 var _weak_points: Array[Hitbox] = []
@@ -50,6 +70,7 @@ var _weak_points: Array[Hitbox] = []
 @onready var _material: StandardMaterial3D = _body_mesh.material_override as StandardMaterial3D
 ## Only slam enemies have arms: a pivot at shoulder height with the arms hanging below it.
 @onready var _arms: Node3D = get_node_or_null(^"Visual/Arms")
+@onready var _mark: Label3D = $Mark
 
 
 func _ready() -> void:
@@ -60,9 +81,20 @@ func _ready() -> void:
 			_weak_points.append(child as Hitbox)
 
 
-func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale: float = 1.0) -> void:
+## `aware` puts it on the floor already engaged, whatever its senses say.
+func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale: float = 1.0,
+		aware: bool = false) -> void:
 	_target = target
-	_state = State.CHASE
+	_state = State.CHASE if aware or data.always_aware else State.IDLE
+	_sees_target = false
+	_look_left = randf_range(0.0, data.sight_interval)
+	_unseen_time = 0.0
+	_last_known = target.global_position
+	_has_goal = false
+	_pause_left = randf_range(0.0, data.patrol_pause_max)
+	_alert_cause = &""
+	_flanking = false
+	_flank_angle = deg_to_rad(randf_range(-data.flank_angle_degrees, data.flank_angle_degrees))
 	_health = data.max_health * health_scale
 	_damage_scale = damage_scale
 	_speed = data.move_speed * randf_range(1.0 - data.speed_variance, 1.0 + data.speed_variance)
@@ -74,6 +106,7 @@ func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale:
 	_knockback = Vector3.ZERO
 	_path = PackedVector3Array()
 	_path_index = 0
+	_path_done = false
 	# Stagger the first replan too, so a batch spawned together doesn't plan together.
 	_repath_left = randf_range(0.0, data.repath_interval_min)
 	velocity = Vector3.ZERO
@@ -82,9 +115,12 @@ func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale:
 	collision_mask = _body_mask
 	_refresh_weak_points()
 	_visual.scale = Vector3.ONE
+	# Unaware, it could be looking anywhere.
+	_visual.rotation.y = randf() * TAU
 	_material.albedo_color = data.body_color
 	if _arms != null:
 		_arms.rotation.x = 0.0
+	_refresh_mark()
 	acted.emit(self, &"spawn")
 
 
@@ -103,6 +139,31 @@ func get_type_name() -> String:
 
 func get_state_name() -> String:
 	return State.keys()[_state]
+
+
+## Has seen the target and is fighting it.
+func is_engaged() -> bool:
+	return _state >= State.CHASE and _state != State.DYING
+
+
+func get_alert_cause() -> StringName:
+	return _alert_cause
+
+
+## A noise at `noise_position`. Sends it to look, unless it is already fighting.
+func hear(noise_position: Vector3, cause: StringName) -> void:
+	if not is_alive() or is_engaged() or data.always_aware:
+		return
+	var error: Vector3 = Vector3(randf_range(-1.0, 1.0), 0.0, randf_range(-1.0, 1.0)) * data.hearing_error
+	_alert_to(noise_position + error, cause)
+
+
+## Set by the owner: whether enough of its kind are engaged to come in from different sides.
+func set_flanking(flanking: bool) -> void:
+	if flanking and not _flanking:
+		var from_target: Vector3 = global_position - _target.global_position
+		_flank_bearing = atan2(from_target.z, from_target.x) + _flank_angle
+	_flanking = flanking
 
 
 ## The attack it is winding up, making, or made last.
@@ -125,6 +186,8 @@ func take_hit(hit: HitInfo) -> void:
 	if _health <= 0.0:
 		hit.killed = true
 		_die(hit)
+	elif not is_engaged() and hit.source is Node3D:
+		_alert_to((hit.source as Node3D).global_position, &"hit")
 
 
 func _physics_process(delta: float) -> void:
@@ -133,14 +196,24 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_charge_left = maxf(_charge_left - delta, 0.0)
+	_tick_senses(delta)
 
 	var wish_velocity: Vector3 = Vector3.ZERO
 	match _state:
+		State.IDLE:
+			wish_velocity = _tick_idle(delta)
+		State.ALERTED:
+			wish_velocity = _tick_alerted(delta)
+		State.SEARCH:
+			wish_velocity = _tick_search(delta)
 		State.CHASE:
-			wish_velocity = _get_chase_velocity(delta)
-			if _pick_attack():
-				_enter(State.WINDUP, _get_windup_time())
-				acted.emit(self, &"windup")
+			if _unseen_time >= data.lose_sight_time and not data.always_aware:
+				_lose_target()
+			else:
+				wish_velocity = _get_chase_velocity(delta)
+				if _pick_attack():
+					_enter(State.WINDUP, _get_windup_time())
+					acted.emit(self, &"windup")
 		State.WINDUP:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -179,6 +252,144 @@ func _physics_process(delta: float) -> void:
 	_update_feedback(delta)
 
 
+func _tick_senses(delta: float) -> void:
+	if data.always_aware:
+		return
+	_unseen_time += delta
+	_look_left -= delta
+	if _look_left <= 0.0:
+		_look_left = data.sight_interval
+		_sees_target = _look()
+	if not _sees_target:
+		return
+	_unseen_time = 0.0
+	_last_known = _target.global_position
+	if _state < State.CHASE:
+		_alert_cause = &"sight"
+		_enter(State.CHASE, 0.0)
+		_restart_route()
+		acted.emit(self, &"alert")
+
+
+func _look() -> bool:
+	var to_target: Vector3 = _target.global_position - global_position
+	if to_target.length() > data.sight_range:
+		return false
+	to_target.y = 0.0
+	if to_target.length() > data.notice_range:
+		var facing: Vector3 = -_visual.global_basis.z
+		facing.y = 0.0
+		if rad_to_deg(facing.angle_to(to_target)) > data.sight_cone_degrees * 0.5:
+			return false
+	return _can_see_target()
+
+
+## Goes to look at `point`. Already on its way somewhere, it changes where without announcing it again.
+func _alert_to(point: Vector3, cause: StringName) -> void:
+	_last_known = _get_floor_point(point)
+	_alert_cause = cause
+	_set_goal(_pick_vantage() if data.attack_style == EnemyData.AttackStyle.RANGED else _last_known)
+	var announce: bool = _state != State.ALERTED
+	_enter(State.ALERTED, data.alert_timeout)
+	if announce:
+		acted.emit(self, &"alert")
+
+
+## Engaged, and the target has been out of sight too long.
+func _lose_target() -> void:
+	acted.emit(self, &"lost")
+	_set_goal(_pick_vantage() if data.attack_style == EnemyData.AttackStyle.RANGED else _last_known)
+	_enter(State.ALERTED, data.alert_timeout)
+
+
+func _tick_idle(delta: float) -> Vector3:
+	if _pause_left > 0.0:
+		_pause_left -= delta
+		return Vector3.ZERO
+	if not _has_goal:
+		_set_goal(_get_floor_point_near(global_position, 0.0, data.patrol_radius))
+	if _tick_goal(delta):
+		_has_goal = false
+		_pause_left = randf_range(data.patrol_pause_min, data.patrol_pause_max)
+		return Vector3.ZERO
+	return _walk_to(_goal, delta) * _speed * data.patrol_speed_scale
+
+
+func _tick_alerted(delta: float) -> Vector3:
+	_state_left -= delta
+	if _state_left <= 0.0 or _tick_goal(delta):
+		_has_goal = false
+		_pause_left = 0.0
+		_enter(State.SEARCH, data.search_time)
+		acted.emit(self, &"search")
+		return Vector3.ZERO
+	return _walk_to(_goal, delta) * _speed
+
+
+func _tick_search(delta: float) -> Vector3:
+	_state_left -= delta
+	if _state_left <= 0.0:
+		_has_goal = false
+		_pause_left = randf_range(data.patrol_pause_min, data.patrol_pause_max)
+		_enter(State.IDLE, 0.0)
+		acted.emit(self, &"calm")
+		return Vector3.ZERO
+	if _pause_left > 0.0:
+		_pause_left -= delta
+		return Vector3.ZERO
+	if not _has_goal:
+		_set_goal(_get_floor_point_near(_last_known, 0.0, data.search_radius))
+	if _tick_goal(delta):
+		_has_goal = false
+		_pause_left = data.patrol_pause_min
+		return Vector3.ZERO
+	return _walk_to(_goal, delta) * _speed * lerpf(data.patrol_speed_scale, 1.0, 0.5)
+
+
+func _set_goal(point: Vector3) -> void:
+	_goal = point
+	_has_goal = true
+	# Long enough to walk there; after that it is stuck, and gives up.
+	_goal_left = data.alert_timeout
+	_restart_route()
+
+
+## True once the goal is reached, or can't be.
+func _tick_goal(delta: float) -> bool:
+	_goal_left -= delta
+	return _goal_left <= 0.0 or _path_done or _get_flat_distance(_goal) <= data.arrive_distance
+
+
+func _restart_route() -> void:
+	_path = PackedVector3Array()
+	_path_index = 0
+	_path_done = false
+	_repath_left = 0.0
+
+
+func _get_floor_point(point: Vector3) -> Vector3:
+	return NavigationServer3D.map_get_closest_point(get_world_3d().navigation_map, point)
+
+
+func _get_floor_point_near(centre: Vector3, distance_min: float, distance_max: float) -> Vector3:
+	var angle: float = randf() * TAU
+	var distance: float = randf_range(distance_min, distance_max)
+	return _get_floor_point(centre + Vector3(cos(angle), 0.0, sin(angle)) * distance)
+
+
+## A spot that can see the last-known position from a distance. Falls back to the position itself.
+func _pick_vantage() -> Vector3:
+	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
+	for attempt: int in 8:
+		var spot: Vector3 = _get_floor_point_near(
+				_last_known, data.vantage_distance_min, data.vantage_distance_max)
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+				spot + Vector3.UP * data.muzzle_height, _last_known + Vector3.UP, sight_mask)
+		if space.intersect_ray(query).is_empty():
+			return spot
+	return _last_known
+
+
 func _get_chase_velocity(delta: float) -> Vector3:
 	var distance: float = _get_target_distance()
 	match data.attack_style:
@@ -187,10 +398,28 @@ func _get_chase_velocity(delta: float) -> Vector3:
 				return Vector3.ZERO
 		EnemyData.AttackStyle.RANGED:
 			if distance < data.retreat_range:
-				return -_get_direction_to(_target.global_position) * _speed
+				return _get_retreat_direction(delta) * _speed
 			if distance <= data.preferred_range and _can_see_target():
 				return Vector3.ZERO
-	return _get_move_direction(delta) * _speed
+	return _walk_to(_get_aim_point(), delta, _target.global_position) * _speed
+
+
+## Backs off along the floor rather than into a wall: of a few ways out, the one that ends furthest from the target.
+func _get_retreat_direction(delta: float) -> Vector3:
+	if _is_plan_due(delta):
+		var away: Vector3 = -_get_direction_to(_target.global_position)
+		var best: Vector3 = global_position
+		var best_distance: float = 0.0
+		var angles: Array[float] = [0.0, 50.0, -50.0, 100.0, -100.0]
+		for degrees: float in angles:
+			var spot: Vector3 = _get_floor_point(
+					global_position + away.rotated(Vector3.UP, deg_to_rad(degrees)) * data.retreat_step)
+			var distance: float = spot.distance_to(_target.global_position)
+			if distance > best_distance:
+				best_distance = distance
+				best = spot
+		_plan(best)
+	return _steer(global_position)
 
 
 ## Decides whether to attack now, and with what. Sets `_attack` when it returns true.
@@ -243,25 +472,42 @@ func _start_lunge() -> void:
 	_enter(State.LUNGE, data.lunge_duration)
 
 
-## The one place that decides where to walk: along a navigation route to a point ahead of the target.
-func _get_move_direction(delta: float) -> Vector3:
-	_repath_left -= delta
-	if _repath_left <= 0.0:
-		_repath_left = randf_range(data.repath_interval_min, data.repath_interval_max)
-		_path = NavigationServer3D.map_get_path(
-				get_world_3d().navigation_map, global_position, _get_aim_point(), true)
-		# The first point is where we already stand.
-		_path_index = 1
+## The one place that decides where to walk: along a navigation route to `point`.
+## At the end of the route it heads straight for `finish`, or for `point` when none is given.
+func _walk_to(point: Vector3, delta: float, finish: Vector3 = Vector3.INF) -> Vector3:
+	if _is_plan_due(delta):
+		_plan(point)
+	return _steer(point if finish == Vector3.INF else finish)
 
+
+func _is_plan_due(delta: float) -> bool:
+	_repath_left -= delta
+	return _repath_left <= 0.0
+
+
+func _plan(point: Vector3) -> void:
+	_repath_left = randf_range(data.repath_interval_min, data.repath_interval_max)
+	_path = NavigationServer3D.map_get_path(get_world_3d().navigation_map, global_position, point, true)
+	# The first point is where we already stand.
+	_path_index = 1
+	_path_done = false
+
+
+func _steer(finish: Vector3) -> Vector3:
 	while _path_index < _path.size() and _get_flat_distance(_path[_path_index]) <= data.waypoint_reach:
 		_path_index += 1
 	if _path_index >= _path.size():
-		return _get_direction_to(_target.global_position)
+		_path_done = true
+		return _get_direction_to(finish)
 	return _get_direction_to(_path[_path_index])
 
 
 func _get_aim_point() -> Vector3:
-	var lead_scale: float = clampf(_get_target_distance() / data.lead_falloff_distance, 0.0, 1.0)
+	var distance: float = _get_target_distance()
+	if _flanking and distance > data.flank_radius + data.waypoint_reach:
+		var side: Vector3 = Vector3(cos(_flank_bearing), 0.0, sin(_flank_bearing)) * data.flank_radius
+		return _get_floor_point(_target.global_position + side)
+	var lead_scale: float = clampf(distance / data.lead_falloff_distance, 0.0, 1.0)
 	return _target.global_position + _get_target_velocity() * _lead_time * lead_scale
 
 
@@ -314,6 +560,14 @@ func _is_ground_clear() -> bool:
 func _enter(state: State, duration: float) -> void:
 	_state = state
 	_state_left = duration
+	_refresh_mark()
+
+
+func _refresh_mark() -> void:
+	_mark.visible = _state != State.IDLE and _state != State.DYING
+	var hunting: bool = _state == State.ALERTED or _state == State.SEARCH
+	_mark.text = "?" if hunting else "!"
+	_mark.modulate = data.alerted_color if hunting else data.engaged_color
 
 
 func _get_lunge_damage() -> float:
@@ -351,10 +605,17 @@ func _update_feedback(delta: float) -> void:
 	var squash: float = data.windup_squash if winding_up and not raising_arms else 1.0
 	_visual.scale.y = lerpf(_visual.scale.y, squash, 1.0 - exp(-20.0 * delta))
 
-	# Face the target, or the way it is hurtling.
-	var facing: Vector3 = _lunge_direction if _state == State.LUNGE else _get_direction_to(_target.global_position)
+	# Face the target, the way it is hurtling, or the way it is walking.
+	var facing: Vector3 = _get_direction_to(_target.global_position)
+	if _state == State.LUNGE:
+		facing = _lunge_direction
+	elif not is_engaged():
+		facing = Vector3(_move_velocity.x, 0.0, _move_velocity.z).normalized()
 	var can_turn: bool = data.turn_while_recovering or _state != State.RECOVER
-	if can_turn and not facing.is_zero_approx():
+	if _state == State.SEARCH and facing.is_zero_approx():
+		# Standing still, it looks around.
+		_visual.rotation.y += data.turn_speed * 0.2 * delta
+	elif can_turn and not facing.is_zero_approx():
 		var yaw: float = atan2(-facing.x, -facing.z)
 		_visual.rotation.y = lerp_angle(_visual.rotation.y, yaw, 1.0 - exp(-data.turn_speed * delta))
 	_weak_point_pivot.rotation.y = _visual.rotation.y

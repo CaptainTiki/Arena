@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://ctcmygkkcwlg0"]
 
-[ext_resource type="Script" path="res://enemy/enemy_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://cn1sht4536oi8" path="res://enemy/enemy_data.gd" id="1_data"]
 
 [resource]
 script = ExtResource("1_data")
@@ -9,13 +9,13 @@ max_health = 280.0
 move_speed = 3.4
 speed_variance = 0.05
 acceleration = 12.0
-knockback_friction = 22.0
 knockback_scale = 0.15
 lead_time_max = 0.5
-lead_falloff_distance = 8.0
 repath_interval_min = 0.4
 repath_interval_max = 0.7
 waypoint_reach = 1.2
+sight_range = 25.0
+sight_cone_degrees = 100.0
 attack_range = 1.8
 attack_windup = 0.9
 attack_recover = 1.2
@@ -23,24 +23,10 @@ attack_height_tolerance = 2.5
 lunge_speed = 15.0
 lunge_duration = 1.5
 attack_reach = 2.0
-slam_trigger_distance = 3.0
-slam_radius = 4.5
-slam_windup = 0.7
-slam_recover = 1.3
-slam_damage = 22.0
 charge_cooldown = 7.0
-charge_min_distance = 10.0
-charge_max_distance = 30.0
-charge_damage = 25.0
 body_color = Color(0.4, 0.15, 0.5, 1)
-hit_flash_color = Color(1, 1, 1, 1)
-windup_color = Color(1, 0.55, 0, 1)
-flash_fade_speed = 10.0
 windup_squash = 0.8
 pop_scale = 1.5
 pop_time = 0.2
-arm_raise_degrees = 165.0
-arm_raise_speed = 8.0
-arm_slam_speed = 30.0
 turn_speed = 2.5
 turn_while_recovering = false

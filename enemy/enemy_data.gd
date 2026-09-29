@@ -34,6 +34,54 @@ enum AttackStyle {
 ## A route corner counts as reached inside this distance.
 @export var waypoint_reach: float = 0.7
 
+@export_group("Senses")
+## Knows where the target is from the moment it spawns, and never loses it. The old behaviour, for comparison.
+@export var always_aware: bool = false
+## Sees the target inside this distance, inside the cone, with nothing in the way.
+@export var sight_range: float = 30.0
+## Full width of the cone it sees in, centred on the way it faces.
+@export_range(0.0, 360.0) var sight_cone_degrees: float = 120.0
+## Notices the target this close whichever way it faces, walls permitting.
+@export var notice_range: float = 3.5
+## Seconds between looks, so a crowd doesn't cast every ray on every frame.
+@export var sight_interval: float = 0.15
+## Multiplies the radius of every noise. Zero is deaf.
+@export var hearing_scale: float = 1.0
+## A heard position is wrong by up to this many metres.
+@export var hearing_error: float = 3.0
+## Engaged, it gives up this many seconds after last seeing the target and goes to where that was.
+@export var lose_sight_time: float = 4.0
+
+@export_group("Search")
+## Counts as having reached the place it was sent inside this distance.
+@export var arrive_distance: float = 2.0
+## Gives up walking to a last-known position after this long, reached or not.
+@export var alert_timeout: float = 20.0
+## Seconds spent looking around a last-known position before giving up.
+@export var search_time: float = 6.0
+## Looks at points this far from the last-known position.
+@export var search_radius: float = 10.0
+## RANGED only: instead of walking onto a last-known position, finds a spot this far from it that can see it.
+@export var vantage_distance_min: float = 10.0
+@export var vantage_distance_max: float = 22.0
+
+@export_group("Patrol")
+## Fraction of its speed it wanders at while it knows nothing.
+@export_range(0.0, 1.0) var patrol_speed_scale: float = 0.4
+## Each wander goes to a point within this distance.
+@export var patrol_radius: float = 25.0
+## Stands for a random time in this range between wanders.
+@export var patrol_pause_min: float = 1.0
+@export var patrol_pause_max: float = 3.5
+
+@export_group("Flank")
+## LUNGE only. With this many engaged at once, each comes in from its own side. Zero never flanks.
+@export var flank_pack_size: int = 0
+## Each rolls an angle up to this, either way, off its straight line to the target.
+@export_range(0.0, 180.0) var flank_angle_degrees: float = 100.0
+## It heads for a point this far from the target, then turns in.
+@export var flank_radius: float = 7.0
+
 @export_group("Attack")
 ## LUNGE: distance at which the windup starts. SLAM: distance at which it stops walking.
 @export var attack_range: float = 2.5
@@ -75,6 +123,8 @@ enum AttackStyle {
 @export var preferred_range: float = 24.0
 ## Backs away when the target gets closer than this.
 @export var retreat_range: float = 9.0
+## Each step back is planned to a point this far behind it.
+@export var retreat_step: float = 8.0
 @export var projectile_speed: float = 24.0
 ## Height the shot leaves from.
 @export var muzzle_height: float = 1.4
@@ -98,3 +148,6 @@ enum AttackStyle {
 @export var turn_speed: float = 10.0
 ## False leaves it facing the way it struck until it has recovered, so its back can be reached.
 @export var turn_while_recovering: bool = true
+## The mark above it: nothing while it knows nothing, "?" while it hunts, "!" once it has seen the target.
+@export var alerted_color: Color = Color(1.0, 0.85, 0.1)
+@export var engaged_color: Color = Color(1.0, 0.2, 0.15)

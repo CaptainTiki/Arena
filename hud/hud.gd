@@ -1,5 +1,7 @@
 class_name Hud
 extends CanvasLayer
+## Kept small: health, ammo, the objective, and things that show only while they matter.
+## The debug HUD (toggled by the owner) adds the run's numbers and keeps every sponsor row up.
 
 @export var ammo_ok_color: Color = Color(1.0, 1.0, 1.0)
 @export var ammo_low_color: Color = Color(1.0, 0.8, 0.2)
@@ -20,6 +22,10 @@ var _approval_tween: Tween
 var _pickup_tween: Tween
 var _briefing_tween: Tween
 var _meters: Array[SponsorMeter] = []
+var _sponsors: Array[SponsorData] = []
+
+## Outlives the scene, so the choice holds from one fight to the next.
+static var _debug: bool = false
 
 @export var approval_hold_time: float = 1.6
 @export var approval_fade_time: float = 0.6
@@ -27,13 +33,13 @@ var _meters: Array[SponsorMeter] = []
 
 @onready var _objective_label: Label = $ObjectiveLabel
 @onready var _briefing_label: Label = $BriefingLabel
-@onready var _meters_root: Control = $SponsorMeters
+@onready var _meters_root: Control = $TopLeft/SponsorMeters
 @onready var _approval_label: Label = $ApprovalLabel
 @onready var _approval_detail: Label = $ApprovalDetail
 @onready var _pickup_label: Label = $PickupLabel
 @onready var _health_bar: ProgressBar = $HealthBar
 @onready var _damage_flash: ColorRect = $DamageFlash
-@onready var _stats_label: Label = $StatsLabel
+@onready var _stats_label: Label = $TopLeft/StatsLabel
 
 @onready var _dash_bar: ProgressBar = $DashBar
 @onready var _crosshair: ColorRect = $Crosshair
@@ -51,10 +57,23 @@ func _ready() -> void:
 	_briefing_label.modulate.a = 0.0
 	for child: Node in _meters_root.get_children():
 		_meters.append(child as SponsorMeter)
+	_apply_debug()
+
+
+func toggle_debug() -> void:
+	_debug = not _debug
+	_apply_debug()
+
+
+func _apply_debug() -> void:
+	_stats_label.visible = _debug
+	for meter: SponsorMeter in _meters:
+		meter.set_debug(_debug)
 
 
 ## One meter row per sponsor, in order. Rows without a sponsor are hidden.
 func setup_sponsors(sponsors: Array[SponsorData]) -> void:
+	_sponsors = sponsors
 	for index: int in _meters.size():
 		_meters[index].visible = index < sponsors.size()
 		if index < sponsors.size():
@@ -66,14 +85,21 @@ func set_sponsor_progress(index: int, progress: float) -> void:
 		_meters[index].set_progress(progress)
 
 
-func show_sponsor_reaction(index: int, reason: String, positive: bool) -> void:
-	if index < _meters.size():
-		_meters[index].show_reaction(reason, positive)
+## `minor` is small change, a body hit say: recorded on the row, but not worth bringing it up for.
+func show_sponsor_reaction(index: int, reason: String, positive: bool, minor: bool) -> void:
+	if index >= _meters.size():
+		return
+	_meters[index].show_reaction(reason, positive)
+	if positive and not minor:
+		_meters[index].pop()
 
 
 func show_approval(sponsor: SponsorData, pod: PodData) -> void:
 	if _approval_tween != null:
 		_approval_tween.kill()
+	var index: int = _sponsors.find(sponsor)
+	if index >= 0 and index < _meters.size():
+		_meters[index].pop()
 	_approval_label.text = "%s APPROVES" % sponsor.display_name
 	_approval_detail.text = "%s incoming - look up" % pod.display_name
 	_approval_label.modulate = sponsor.color
@@ -100,8 +126,10 @@ func show_pickup(text: String, color: Color) -> void:
 	_pickup_tween.tween_property(_pickup_label, ^"modulate:a", 0.0, pickup_time * 0.5)
 
 
+## Only on screen while the dash is coming back.
 func set_dash_charge(charge: float) -> void:
 	_dash_bar.value = charge
+	_dash_bar.visible = charge < 1.0
 
 
 func set_health(health: float, max_health: float) -> void:

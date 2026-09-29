@@ -307,3 +307,88 @@ Built because shrinking the head changed nothing: a head on top of a body is hit
 * **Log, Long Night:** 30 seconds, pistol only, died to grunts and a heavy slam. First hit ever dodged with the dash.
 * **Change made:** shotgun 12 pellets at 14 damage (168 a blast, was 120), cone 5 to 7 degrees. Six pellets is 84, enough for a grunt at normal health.
 * Pellets already carry on through a robot that dies mid-blast and strike whatever is behind it.
+
+## Shotgun third pass, playtest (2026-09-29, First Blood twice, desktop)
+
+* **Feel:** OK, still not blown away. The numbers may simply be off against enemy health; talk numbers before chasing feel further. Good enough to move on.
+* **Log:** 29 blasts, 19 kills. Against grunts 11 of 14 blasts killed, and every blast inside 5 m did. Two heavies killed, both with the shotgun. Damage taken: heavies 66, grunts 60, shooters 36.
+* **Dash:** 8 dashes, nothing dodged. The tester puts this down to not being used to dodging in a shooter. Not to be judged until other people have played. If it does not land with them either, the alternative is a jump and a crouch: hide behind things and hop over them, and drop the dodge.
+* **Decision, bracketing:** push the shotgun past the mark on purpose to find out what overpowered feels like, and make its ammo scarce. The pistol is the main weapon; the shotgun comes out to clear fodder and goes away again.
+
+## Direction decisions (2026-09-29, vertical slice)
+
+* `docs/vertical-slice-kickoff.md` is the plan: twenty minutes of the whole loop at greybox quality. Order: AI, economy and loadout, contract ladder, base.
+* **Way of working for the slice:** small playable batches are still the default, but batches can be bigger and some play pauses skipped to reach the full loop. The base, its pedestals and their panels go in as one push and get refactored afterwards if needed. When a decision needs the tester: stop, discuss, commit, go again. Numbers get tuned once the whole game is in place.
+* **HUD:** health and ammo stay. The dash bar shows only while the dash is recharging. Sponsors come up at the top left when they like something and fade after a second or two. Everything else goes behind the debug key.
+
+## Shotgun bracket, HUD shrink, perception AI (2026-09-29, not yet playtested)
+
+**Shotgun**
+
+| | Before | Now |
+|-|-|-|
+| Pellets | 12 | 16 |
+| Damage per pellet | 14 | 18 |
+| Full blast | 168 | 288 |
+| Spare shells at the start | 12 | 6 |
+| Share of every ammo pickup | half | a quarter (a 12-round station is 3 shells) |
+
+Deliberately too strong. Five pellets kill a grunt at normal health; a full blast is more than a heavy's 280.
+
+**HUD**
+
+* Always on: health bar, ammo, crosshair, a one-line objective at the top.
+* Only while they matter: dash bar (recharging), reload bar, status line, pickup and approval text. All text is roughly half the size it was.
+* Sponsor rows are hidden. A row comes up when that sponsor likes something or sends a pod, holds a second and fades over a second and a half. Body hits (the Marksman's small change) do not bring the row up, or it would never leave.
+* `~` toggles the debug HUD: the time, kills and alive line, and every sponsor row held on screen with what the sponsor wants. The choice carries over between fights.
+
+**Perception**
+
+* Enemies start `IDLE` and wander. `ALERTED` is walking to a last-known position, `SEARCH` is looking around it, and `CHASE` onward is engaged, which is the old behaviour.
+* **Sight:** range and cone per type, blocked by walls, checked about seven times a second. Inside 3.5 m they notice whichever way they face.
+
+| | Sight range | Cone |
+|-|-|-|
+| Grunt | 30 m | 120 degrees |
+| Shooter | 45 m | 90 degrees |
+| Heavy | 25 m | 100 degrees |
+
+* **Hearing:** every shot is a noise at the player's position: pistol 40 m, shotgun 70 m. Walls do not muffle it. The position they are given is wrong by up to 3 m. Being shot also sends them to where the shot came from.
+* **Held Warden zone:** a noise at the zone once a second, 45 m.
+* **Losing the player:** engaged and unsighted for 4 s, they go to where they last saw the player, search for 6 s, then go back to wandering.
+* **Marks:** nothing over an idle robot, a yellow `?` while it hunts, a red `!` once it has seen you.
+* **Grunts** come in from different sides once three are engaged: each heads for its own point 7 m from the player before turning in.
+* **Shooters** back off along the floor instead of straight into a wall, now from 12 m (half their 24 m range, was 9 m). Sent to a last-known position, they go to a spot 10 to 22 m from it that can see it.
+* **Heavies:** senses only, otherwise unchanged.
+* **Extermination:** the whole roster is on the floor from the start, at least 20 m from the player, 8 m from each other, out of sight of where the player starts. The wave clock is off (`roster_on_floor` on the contract turns it back on).
+* **Survival and scavenger** still spawn at the edges over time, now unaware.
+* **The old behaviour** is `always_aware` on an `EnemyData`. The slice doc asked for a huge sight range to do this, but sight still needs a line and a cone, so a range alone would not bring it back.
+* **Log:** `enemy_alert` (with `cause`: sight, gunfire, zone or hit, and the state it went to), `enemy_lost`, `enemy_search`, and `enemy_calm` for giving up. Crumbs list the new states.
+
+**To watch when it is played**
+
+* Whether a quiet player on a survival or scavenger contract is ever found. In a headless run with the player standing silent, most of the crowd stayed idle at the edges.
+* Whether 15 robots at once on First Blood is a fight or a pile-on after the first shotgun blast.
+* Found on the way: the navigation mesh also covers the roofs of the four corner masses and the floor inside them. Nothing can reach either, and roster placement checks for a way in, but wander and search points near a corner can land there and the robot walks to the wall instead.
+
+## Perception, first play (2026-09-29, one run of First Blood)
+
+* **"Ouch."** Died at 0:21 with 6 kills, starting in the middle of the map.
+* **Log:** seen by a robot at 0.02 s, before moving. The first pistol shot at 4.3 s alerted six at once, and 28 alerts were logged in 21 seconds. Damage came from grunts (30), shooters (36) and a heavy (two slams, 34 and the kill).
+* **Cause of the instant sighting:** placement was checked for sight and then nudged up to 2 m sideways, which could move a robot out from behind its cover. The check also used one height, not the one the robots look from.
+* **Decision:** the player starts in a corner, on a `PlayerSpawn` marker placed by the tester (east arm, south side), with nothing next to them and everything round a corner.
+* **Changes made in response:**
+  * `Arena` puts the player on `PlayerSpawn`, facing the way the marker faces.
+  * A roster on the floor now starts at least 30 m from the player (was 20), with no nudge, and out of sight at both chest and eye height.
+* Headless, five starts: nearest robot 30 to 39 m away, nobody aware at the start. Standing still and silent for 30 seconds, the player was found once, at 28.6 s, by a wanderer.
+
+## Perception, corner start, playtest (2026-09-29, one run of First Blood)
+
+* **Liked a lot.** Cautious play is rewarded; moving round the map matters. The furthest the tester has got in a playthrough.
+* **Log:** won at 1:29, 15 kills, 32 shots (24 pistol, 8 shotgun), 10 weak-point hits. Hit three times in the whole fight (two shooters, one grunt). 18 alerts by sight, 13 by gunfire, 1 by being shot. Three robots lost the player; one searched.
+* **Too short.** A careful player clears the floor in a minute or two. Idea: spawn booths on the sides of the map that let more in from time to time.
+* **Pods:** 6 dropped in 89 seconds. Still candy.
+* **Decisions for the rest of the slice:**
+  * Weapons are sold by sponsors: the Butcher sells the shotgun, the Marksman a rifle, the Warden the .357.
+  * Two vests instead of light and heavy armour. The ammo vest starts with more ammo and has bigger pockets. The armour vest cuts damage taken, but starts with less ammo and carries less.
+  * The rest of the slice is built as one push.

@@ -8,6 +8,7 @@ var _fire_queued: bool = false
 var _reload_queued: bool = false
 var _slot_queued: int = -1
 var _cycle_queued: bool = false
+var _debug_queued: bool = false
 
 
 func _ready() -> void:
@@ -17,6 +18,9 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		return
+	if event.is_action_pressed(&"debug_hud"):
+		_debug_queued = true
 		return
 
 	if not is_active():
@@ -92,4 +96,10 @@ func consume_weapon_slot() -> int:
 func consume_weapon_cycle() -> bool:
 	var queued: bool = _cycle_queued
 	_cycle_queued = false
+	return queued
+
+
+func consume_debug_toggle() -> bool:
+	var queued: bool = _debug_queued
+	_debug_queued = false
 	return queued

@@ -1,10 +1,6 @@
-[gd_resource type="Resource" script_class="RunData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="RunData" format=3 uid="uid://drnd4j45nvo16"]
 
-[ext_resource type="Script" path="res://run/run_data.gd" id="1_data"]
+[ext_resource type="Script" uid="uid://bu7xkphw5r74u" path="res://run/run_data.gd" id="1_data"]
 
 [resource]
 script = ExtResource("1_data")
-briefing_time = 6.0
-summary_input_delay = 1.0
-drops_per_reputation = 2
-max_reputation_gain = 3
