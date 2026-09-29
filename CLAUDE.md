@@ -27,14 +27,14 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 
 | Folder | Holds |
 |-|-|
-| `arena/` | `Arena` (the spine), `Level`, blocks, hold zones, ammo stations |
-| `player/`, `weapon/` | Player, intent, pistol |
+| `arena/` | `Arena` (the spine), `Level`, blocks, hold zones, stations (ammo or health) |
+| `player/`, `weapon/` | Player, intent, pistol and shotgun (one `Weapon` script, `WeaponData` sets pellets and spread) |
 | `enemy/` | One `Enemy` script for all types; `EnemyData` picks the attack style. Grunt, heavy, shooter, projectile |
 | `spawn/` | `Spawner` (density ramp or named roster) and ramp waves |
 | `contract/` | `ContractData`, `RosterWave`, the three contracts |
 | `sponsor/`, `pod/` | Sponsor scoring and the pods they drop |
-| `run/` | Run stats, reputation rules, `ProfileStore` (save file) |
-| `hud/`, `feel/`, `audio/`, `combat/` | HUD and summary, hitstop and damage numbers, sounds, shared combat types |
+| `run/` | Run stats, reputation rules, `ProfileStore` (save file), `RunLog` (playtest event log) |
+| `hud/`, `feel/`, `audio/`, `combat/` | HUD and summary, hitstop and damage numbers, sounds, shared combat types (`Hitbox` is a weak point) |
 
 ## Testing headless
 
@@ -47,17 +47,37 @@ Test scripts extend `SceneTree`. Things that have bitten before:
 * Mouse capture does not exist headless, so `PlayerIntent.is_active()` is false. Swap the intent's script for a stub that returns `true`.
 * Check the test lane for crates and pillars before blaming game code.
 * Set `Arena.profile_path` to a test file and delete it afterwards, so the real save is untouched.
+* Set `RunLog.directory` to a `user://` folder, or the test writes into the tester's `.logs/`.
+* Set `Arena.debug_contract`, or `ask_for_contract = false`, or the fight waits on the contract picker forever.
+* A reloaded scene loses exports set on the instance, so after `reload_current_scene()` it is back on the real profile and log folder.
+* Fire with `player.get_weapon()`, not a weapon reference taken at the start; the weapon in hand changes.
+* No test scripts are kept in the repo. Write them in a scratch folder.
+
+## Playtest logs
+
+Every session writes one JSON-lines file to `.logs/` at the project root (ignored by git, newest 10 kept). After the tester plays, read the newest file before discussing how it went: what they felt and what the log shows are both evidence, and they have disagreed. The event list is in `docs/playtest-notes.md` under "Run log". Logs do not travel between machines.
 
 ## Where things stand
 
-Playable now: three contracts (extermination, scavenger, survival), three enemy types, four sponsors, parachute pods, ammo stations, a cross-shaped arena with levels and cover, run summary with cash and reputation.
+As of 2026-09-29. Playable now: three contracts chosen from a picker (number keys at launch and on the summary), box robots with weak points (grunt chest eye, shooter lens that opens while it attacks, heavy core on its back), pistol and shotgun carried together (`1`, `2`, `Q` or wheel), stations that stock ammo (blue) or health (red), four sponsors, parachute pods, run summary with cash and reputation.
 
-Not yet played by the tester: the contract system and the combat pivot (pistol damage doubled, fewer named enemies that hit harder).
+Last change, committed but not yet played: shotgun raised to 12 pellets at 14 damage in a 7 degree cone, so half a blast kills a grunt.
 
-Agreed order for what comes next:
+Open findings from the logs:
 
-1. New enemy types: rifles and shotguns.
-2. A walkable home base: booking computer, research terminal for sponsors, enemies and arenas, an agent, trophies.
-3. Economy: weapon rack, wardrobe, things to buy with cash (weapons, armour, mods).
+* The dash has dodged one hit in every logged run put together. It is not working as a dodge.
+* Shooters are the main source of damage on the easier contracts.
+* Survival contracts keep raising how many are alive whether or not the player is keeping up; that is where control is lost.
+* The HUD is far too big. Agreed to shrink it and move the verbose parts behind a debug key (`~`). Not started.
+
+Agreed direction, not built:
+
+* **Perception AI.** All enemies on the floor from the start; sight range and cone, hearing that gives a vague direction, searching. Gunfire and a held Warden zone draw them in. Today every enemy knows where the player is from spawn.
+* **Favour.** Paid at the end of a run, nothing on a loss, scaled by a contract difficulty multiplier. Sponsors can request a specific fight for double. Needs bigger numbers than the current 1 to 3 per run.
+* **Pods become rare.** Thrown for a specific feat per sponsor, not like candy at a parade. Current drop rates are test tuning.
+* **Stations as vending machines.** Spend favour or cash for health or ammo; not every station stocks everything. Health is free for now.
+* **An easy contract** so a struggling player has somewhere to step down to.
+
+Order after that, unchanged: new enemy types (rifles and shotguns), a walkable home base, then the economy.
 
 Reputation perks shown on the summary are teasers only; none are implemented.

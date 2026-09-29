@@ -299,3 +299,11 @@ Built because shrinking the head changed nothing: a head on top of a body is hit
 * **Changes made in response:**
   * Shotgun: 10 pellets at 12 damage (120 a blast, was 80), weak-point pellets 3x (was 2x). A grunt at normal health now dies with 7 of 10 pellets.
   * Contract picker: the first fight of a session waits on a list, and the summary screen offers the same list. Number keys 1 to 3 choose, click repeats the last one.
+
+## Shotgun second pass, playtest (2026-09-29, First Blood then Long Night)
+
+* **Better, still not satisfying.** Rule from the tester: half the pellets should kill a grunt, so a mostly missed blast still kills and the stray pellets chew the crowd behind. The pistol stays as it is.
+* **Log, First Blood:** 11 blasts, 7 kills; 5 of 7 blasts at grunts killed. The pistol had 19 shots for 7 kills in the same run. Died at 0:59, 72 of 102 damage from shooters.
+* **Log, Long Night:** 30 seconds, pistol only, died to grunts and a heavy slam. First hit ever dodged with the dash.
+* **Change made:** shotgun 12 pellets at 14 damage (168 a blast, was 120), cone 5 to 7 degrees. Six pellets is 84, enough for a grunt at normal health.
+* Pellets already carry on through a robot that dies mid-blast and strike whatever is behind it.
