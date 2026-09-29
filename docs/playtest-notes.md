@@ -101,3 +101,12 @@ Built in response to the step 1 and step 2 arena notes. Not one of the kickoff d
 6. **Is meta-progression worth building?** Yes, the stub was liked.
 
 Still open: overall difficulty was called tough and possibly too harsh; tuning pass pending. Only one tester so far.
+
+## Dash at half speed, and full-run pacing (2026-09-28)
+
+* **Dash:** much better at 14 m/s. "Awesome as it is." Leave it alone.
+* **Tuning values:** fine as they are. The problem is pacing, not numbers per enemy.
+* **Pacing:** the game plays too quickly. The arena fills too fast with too many big enemies. Wants real progression: start slow, ramp over time, and be almost too much at 12 to 15 minutes, by which point the player should have picked up health, fire rate and so on.
+* **Ammo:** running out a lot. Sponsors should not be the only source. Wants fixed ammo stations around the map ("vending machines"): several of them, restocking on a timer of a minute or two, with lights showing state (flashing when about to restock, green when stocked). Possibly hold nearby for a few seconds to collect.
+* **Pods:** should not slam straight down. Wants them to float down on a parachute over 15 to 20 seconds, drifting one way then another before settling.
+* **Heavy:** likes it as it is now, including the area size, but dislikes the disc on the ground. The reach should not be advertised. Think big arms that it swings down.
