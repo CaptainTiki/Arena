@@ -41,9 +41,10 @@ var _path_index: int = 0
 var _repath_left: float = 0.0
 var _body_layer: int = 0
 var _body_mask: int = 0
-var _head_layer: int = 0
+var _weak_points: Array[Hitbox] = []
 
-@onready var _head: Hitbox = $Head
+## Turns with the visual, so a weak point stays on the side of the body it was authored on.
+@onready var _weak_point_pivot: Node3D = $WeakPoints
 @onready var _visual: Node3D = $Visual
 @onready var _body_mesh: MeshInstance3D = $Visual/BodyMesh
 @onready var _material: StandardMaterial3D = _body_mesh.material_override as StandardMaterial3D
@@ -54,7 +55,9 @@ var _head_layer: int = 0
 func _ready() -> void:
 	_body_layer = collision_layer
 	_body_mask = collision_mask
-	_head_layer = _head.collision_layer
+	for child: Node in _weak_point_pivot.get_children():
+		if child is Hitbox:
+			_weak_points.append(child as Hitbox)
 
 
 func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale: float = 1.0) -> void:
@@ -77,7 +80,7 @@ func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale:
 	global_position = at
 	collision_layer = _body_layer
 	collision_mask = _body_mask
-	_head.collision_layer = _head_layer
+	_refresh_weak_points()
 	_visual.scale = Vector3.ONE
 	_material.albedo_color = data.body_color
 	if _arms != null:
@@ -350,9 +353,12 @@ func _update_feedback(delta: float) -> void:
 
 	# Face the target, or the way it is hurtling.
 	var facing: Vector3 = _lunge_direction if _state == State.LUNGE else _get_direction_to(_target.global_position)
-	if not facing.is_zero_approx():
+	var can_turn: bool = data.turn_while_recovering or _state != State.RECOVER
+	if can_turn and not facing.is_zero_approx():
 		var yaw: float = atan2(-facing.x, -facing.z)
 		_visual.rotation.y = lerp_angle(_visual.rotation.y, yaw, 1.0 - exp(-data.turn_speed * delta))
+	_weak_point_pivot.rotation.y = _visual.rotation.y
+	_refresh_weak_points()
 
 	if _arms != null:
 		var arm_target: float = deg_to_rad(data.arm_raise_degrees) if raising_arms else 0.0
@@ -360,11 +366,18 @@ func _update_feedback(delta: float) -> void:
 		_arms.rotation.x = lerpf(_arms.rotation.x, arm_target, 1.0 - exp(-arm_speed * delta))
 
 
+func _refresh_weak_points() -> void:
+	var attacking: bool = _state == State.WINDUP or _state == State.RECOVER
+	for weak_point: Hitbox in _weak_points:
+		weak_point.set_exposed(weak_point.exposure == Hitbox.Exposure.ALWAYS or attacking)
+
+
 func _die(hit: HitInfo) -> void:
 	_enter(State.DYING, data.pop_time)
 	collision_layer = 0
 	collision_mask = 0
-	_head.collision_layer = 0
+	for weak_point: Hitbox in _weak_points:
+		weak_point.set_exposed(false)
 	_material.albedo_color = data.hit_flash_color
 	died.emit(self, hit)
 

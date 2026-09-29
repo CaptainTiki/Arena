@@ -96,3 +96,5 @@ enum AttackStyle {
 @export var arm_raise_speed: float = 8.0
 @export var arm_slam_speed: float = 30.0
 @export var turn_speed: float = 10.0
+## False leaves it facing the way it struck until it has recovered, so its back can be reached.
+@export var turn_while_recovering: bool = true

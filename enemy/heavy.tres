@@ -42,4 +42,5 @@ pop_time = 0.2
 arm_raise_degrees = 165.0
 arm_raise_speed = 8.0
 arm_slam_speed = 30.0
-turn_speed = 6.0
+turn_speed = 2.5
+turn_while_recovering = false

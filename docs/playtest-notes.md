@@ -240,3 +240,42 @@ Built before any AI work, so pressure can be tuned from data rather than impress
 * **Shooters did 60 of the 105 damage taken.**
 * **Still no hit dodged with the dash.**
 * A second run in the log lasted 11 seconds with no shots or movement; ignored.
+
+## Robots, weak points and station stock (2026-09-29, not yet playtested)
+
+Built because shrinking the head changed nothing: a head on top of a body is hit or missed, never grazed into a body shot.
+
+| Robot | Shape | Weak point | How to reach it |
+|-|-|-|-|
+| Grunt | Squat red box | Eye on the chest, 0.14 m radius | From the front only. A near miss is a body hit |
+| Shooter | Thin teal mast with a turret head | Lens on the turret, 0.16 m radius | Shut behind a dark shutter while it walks; open while it winds up, fires and recovers |
+| Heavy | Purple slab with arms | Core on its back, 0.3 m radius | Turns slowly, and stays facing the way it struck until it recovers, so dodge the charge and shoot its back |
+
+* All weak points are yellow and take the same 8x multiplier. In code they are still called heads.
+* Heavy turn speed 6 to 2.5.
+* **Stations** now stock ammo or health, rolled at each restock (40% health). Blue light for ammo, red for health. Steady is stocked, flashing is arriving within 15 s, no light is empty with nothing on the way. Health heals 30 and stays on the shelf if the player is at full health. Free for now; spending favour or cash comes later.
+* The log's `ammo_station` event is now `station`, with what was taken.
+
+## Robots, weak points and station stock, playtest (2026-09-29, one run of Long Night)
+
+* **Feel:** liked a lot. Health was a boon; healed often and felt it kept the run going.
+* **Never in control.** Too many small robots to even try for a heavy's back; running the whole time. Wants a crowd-control weapon, a shotgun or a machine gun, or the pistol does less and less as small robots are added.
+
+| | Heads on top | Robots |
+|-|-|-|
+| Died at | 2:12 | 2:48 |
+| Kills | 23 | 18 |
+| Hits on a weak point | 87% | 32% |
+| Hits to kill a grunt (160 health in this contract) | 2.2 | 4.6 |
+| Kills per minute | 10.5 | 6.4 |
+| Damage taken per minute | 48 | 59 |
+| Seconds with something inside 8 m | 54 of 132 | 93 of 169 |
+| Health picked up at stations | none existed | 60 |
+
+* **The chest eye did what the smaller head could not:** weak-point share fell from 87% to 32% and body shots came back (75 of 111 hits).
+* **Killing slowed while spawning did not.** The survival ramp keeps raising how many are alive, so the floor went from 5 to 15 and the last minute had one kill. That is the loss of control.
+* **Grunts are now the main damage** (90 of 164), where shooters were before.
+* **Heavies:** 15 body shots landed on them, none on a core, none killed. They charged 14 times and connected twice.
+* **Still no hit dodged with the dash**, in 11 dashes.
+* Every logged run since the first three has been Long Night, the hardest contract with doubled health. Nothing is known yet about how the robots play on the other two.
+* Decision: build a shotgun as the crowd-control weapon, carried alongside the pistol.

@@ -383,6 +383,11 @@ func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
 
 
 func _on_ammo_station_collected(station: AmmoStation) -> void:
-	_weapon.add_reserve(station.get_ammo())
-	_log.log_player("ammo_station", {"ammo": station.get_ammo()})
-	_hud.show_pickup("AMMO +%d" % station.get_ammo(), station.data.stocked_color)
+	if station.get_stock() == AmmoStation.Stock.HEALTH:
+		_player.heal(station.data.health)
+		_log.log_player("station", {"stock": "health", "amount": station.data.health})
+		_hud.show_pickup("HEALTH +%d" % roundi(station.data.health), station.get_color())
+		return
+	_weapon.add_reserve(station.data.ammo)
+	_log.log_player("station", {"stock": "ammo", "amount": station.data.ammo})
+	_hud.show_pickup("AMMO +%d" % station.data.ammo, station.get_color())
