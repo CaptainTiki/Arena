@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="ContractData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://contract/contract_data.gd" id="1_contract"]
+[ext_resource type="Script" path="res://spawn/spawn_wave.gd" id="2_wave"]
+[ext_resource type="Resource" path="res://spawn/wave_1_warmup.tres" id="3_wave1"]
+[ext_resource type="Resource" path="res://spawn/wave_2_build.tres" id="4_wave2"]
+[ext_resource type="Resource" path="res://spawn/wave_3_horde.tres" id="5_wave3"]
+[ext_resource type="Resource" path="res://spawn/wave_4_endgame.tres" id="6_wave4"]
+
+[resource]
+script = ExtResource("1_contract")
+display_name = "THE LONG NIGHT"
+briefing = "They keep coming. Fifteen minutes on the clock. Nobody has seen the end of it."
+type = 1
+time_limit = 900.0
+cash_reward = 1200
+enemy_health_scale = 2.0
+enemy_damage_scale = 1.0
+ramp = Array[ExtResource("2_wave")]([ExtResource("3_wave1"), ExtResource("4_wave2"), ExtResource("5_wave3"), ExtResource("6_wave4")])
+target_count = 0

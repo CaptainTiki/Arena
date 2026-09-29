@@ -1,0 +1,44 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://audio/sfx.gd" id="1_sfx"]
+[ext_resource type="Script" path="res://audio/tone_data.gd" id="2_tone"]
+
+[sub_resource type="Resource" id="Resource_alarm"]
+script = ExtResource("2_tone")
+frequency = 880.0
+end_frequency = 1320.0
+beep_length = 0.16
+gap_length = 0.1
+repeats = 3
+volume = 0.5
+
+[sub_resource type="Resource" id="Resource_won"]
+script = ExtResource("2_tone")
+frequency = 660.0
+end_frequency = 990.0
+beep_length = 0.22
+gap_length = 0.05
+repeats = 2
+volume = 0.5
+
+[sub_resource type="Resource" id="Resource_lost"]
+script = ExtResource("2_tone")
+frequency = 330.0
+end_frequency = 165.0
+beep_length = 0.5
+gap_length = 0.05
+repeats = 1
+volume = 0.5
+
+[node name="Sfx" type="Node"]
+process_mode = 3
+script = ExtResource("1_sfx")
+pod_alarm = SubResource("Resource_alarm")
+contract_won = SubResource("Resource_won")
+contract_lost = SubResource("Resource_lost")
+
+[node name="PodAlarm" type="AudioStreamPlayer" parent="."]
+
+[node name="ContractWon" type="AudioStreamPlayer" parent="."]
+
+[node name="ContractLost" type="AudioStreamPlayer" parent="."]

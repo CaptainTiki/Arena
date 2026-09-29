@@ -2,7 +2,7 @@ class_name WeaponData
 extends Resource
 
 @export_group("Damage")
-@export var damage: float = 10.0
+@export var damage: float = 20.0
 @export var headshot_multiplier: float = 2.0
 @export var max_range: float = 200.0
 ## Speed the target is shoved back at, metres per second.

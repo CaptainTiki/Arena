@@ -96,6 +96,11 @@ func quicken_fire(fraction: float) -> void:
 	_stats.fire_interval *= 1.0 - fraction
 
 
+## 0.15 makes every shot hit 15% harder.
+func boost_damage(fraction: float) -> void:
+	_stats.damage *= 1.0 + fraction
+
+
 func is_reloading() -> bool:
 	return _reload_left > 0.0
 

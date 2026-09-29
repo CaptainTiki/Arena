@@ -4,8 +4,8 @@ extends Resource
 enum AttackStyle {
 	## Winds up, then lunges in a straight line.
 	LUNGE,
-	## Never swings. Hurts anything that stays inside its aura.
-	AURA,
+	## Raises its arms and slams the ground around it. Can also charge from range.
+	SLAM,
 	## Keeps its distance and fires aimed projectiles when it can see the target.
 	RANGED,
 }
@@ -35,32 +35,37 @@ enum AttackStyle {
 @export var waypoint_reach: float = 0.7
 
 @export_group("Attack")
-## LUNGE: distance at which the windup starts. AURA: distance at which it stops walking.
+## LUNGE: distance at which the windup starts. SLAM: distance at which it stops walking.
 @export var attack_range: float = 2.5
-## Seconds of telegraph before a lunge or a shot.
+## Seconds of telegraph before a lunge, a charge or a shot.
 @export var attack_windup: float = 0.35
 @export var attack_recover: float = 0.6
-## Damage of one lunge, one projectile, or one aura tick.
+## Damage of one lunge or one projectile.
 @export var attack_damage: float = 10.0
 ## No strike when the target is further above or below than this.
 @export var attack_height_tolerance: float = 1.5
 
 @export_group("Lunge")
-## Also the speed and length of an aura enemy's charge.
+## Also the speed and length of a slam enemy's charge.
 @export var lunge_speed: float = 16.0
 @export var lunge_duration: float = 0.3
 ## The lunge or charge connects if it gets this close to the target.
 @export var attack_reach: float = 1.3
 
-@export_group("Aura")
-@export var aura_radius: float = 4.5
-## Seconds between damage ticks while the target is inside the aura.
-@export var aura_interval: float = 0.5
+@export_group("Slam")
+## Starts raising its arms when the target is this close.
+@export var slam_trigger_distance: float = 3.0
+## Everything inside this distance is hit when the arms come down.
+@export var slam_radius: float = 4.5
+## Seconds the arms are raised before they come down.
+@export var slam_windup: float = 0.7
+@export var slam_recover: float = 1.3
+@export var slam_damage: float = 22.0
 
 @export_group("Charge")
-## Aura enemies only. Seconds between charges; zero means it never charges.
+## Slam enemies only. Seconds between charges; zero means it never charges.
 @export var charge_cooldown: float = 0.0
-## Charges only when the target is between these distances and in sight.
+## Charges only when the target is between these distances with clear ground between.
 @export var charge_min_distance: float = 10.0
 @export var charge_max_distance: float = 30.0
 @export var charge_damage: float = 25.0
@@ -82,7 +87,12 @@ enum AttackStyle {
 @export var hit_flash_color: Color = Color(1.0, 1.0, 1.0)
 @export var windup_color: Color = Color(1.0, 0.55, 0.0)
 @export var flash_fade_speed: float = 10.0
-## The body squashes to this height during the windup.
+## The body squashes to this height during a lunge, charge or shot windup.
 @export var windup_squash: float = 0.75
 @export var pop_scale: float = 1.7
 @export var pop_time: float = 0.12
+## How far the arms swing up for a slam, in degrees from hanging straight down.
+@export var arm_raise_degrees: float = 165.0
+@export var arm_raise_speed: float = 8.0
+@export var arm_slam_speed: float = 30.0
+@export var turn_speed: float = 10.0

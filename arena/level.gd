@@ -5,6 +5,7 @@ extends NavigationRegion3D
 
 @onready var _spawn_points_root: Node3D = $SpawnPoints
 @onready var _hold_zones_root: Node3D = $HoldZones
+@onready var _ammo_stations_root: Node3D = $AmmoStations
 
 
 func _ready() -> void:
@@ -18,6 +19,14 @@ func get_hold_zones() -> Array[HoldZone]:
 		if child is HoldZone:
 			zones.append(child as HoldZone)
 	return zones
+
+
+func get_ammo_stations() -> Array[AmmoStation]:
+	var stations: Array[AmmoStation] = []
+	for child: Node in _ammo_stations_root.get_children():
+		if child is AmmoStation:
+			stations.append(child as AmmoStation)
+	return stations
 
 
 func get_spawn_points() -> Array[Marker3D]:

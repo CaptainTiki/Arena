@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://pod/pod.gd" id="1_pod"]
 
@@ -21,6 +21,23 @@ size = Vector3(0.2, 40, 0.2)
 resource_local_to_scene = true
 shading_mode = 0
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_canopy"]
+cull_mode = 2
+albedo_color = Color(0.95, 0.95, 0.9, 1)
+
+[sub_resource type="SphereMesh" id="SphereMesh_canopy"]
+material = SubResource("StandardMaterial3D_canopy")
+radius = 2.6
+height = 2.0
+is_hemisphere = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_line"]
+albedo_color = Color(0.2, 0.2, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_line"]
+material = SubResource("StandardMaterial3D_line")
+size = Vector3(0.06, 3, 0.06)
+
 [node name="Pod" type="Area3D"]
 collision_layer = 8
 collision_mask = 2
@@ -36,6 +53,18 @@ shape = SubResource("CylinderShape3D_pickup")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
 mesh = SubResource("CylinderMesh_body")
 material_override = SubResource("StandardMaterial3D_body")
+
+[node name="Canopy" type="Node3D" parent="Visual"]
+
+[node name="Dome" type="MeshInstance3D" parent="Visual/Canopy"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+cast_shadow = 0
+mesh = SubResource("SphereMesh_canopy")
+
+[node name="Line" type="MeshInstance3D" parent="Visual/Canopy"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.7, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_line")
 
 [node name="Beacon" type="MeshInstance3D" parent="Visual"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 21.2, 0)

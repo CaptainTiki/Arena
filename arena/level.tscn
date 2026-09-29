@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://arena/level.gd" id="1_level"]
 [ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
 [ext_resource type="PackedScene" path="res://arena/hold_zone.tscn" id="3_zone"]
+[ext_resource type="PackedScene" path="res://arena/ammo_station.tscn" id="4_station"]
 
 [sub_resource type="NavigationMesh" id="NavigationMesh_level"]
 geometry_parsed_geometry_type = 1
@@ -234,6 +235,27 @@ color = Color(0.3, 0.4, 0.35, 1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -30, 2, 5)
 size = Vector3(1, 4, 7)
 color = Color(0.3, 0.4, 0.35, 1)
+
+[node name="AmmoStations" type="Node3D" parent="."]
+
+[node name="Centre" parent="AmmoStations" instance=ExtResource("4_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0, 5)
+
+[node name="Terrace" parent="AmmoStations" instance=ExtResource("4_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 18, 3, -40)
+first_stock_delay = 30.0
+
+[node name="EastAlley" parent="AmmoStations" instance=ExtResource("4_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35, 0, 15)
+first_stock_delay = 60.0
+
+[node name="South" parent="AmmoStations" instance=ExtResource("4_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 27)
+first_stock_delay = 90.0
+
+[node name="West" parent="AmmoStations" instance=ExtResource("4_station")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -16)
+first_stock_delay = 105.0
 
 [node name="HoldZones" type="Node3D" parent="."]
 

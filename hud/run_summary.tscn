@@ -38,9 +38,15 @@ theme_override_font_sizes/font_size = 72
 text = "YOU DIED"
 horizontal_alignment = 1
 
+[node name="Pay" type="Label" parent="Panel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "pay"
+horizontal_alignment = 1
+
 [node name="Stats" type="Label" parent="Panel/Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 20
 text = "stats"
 horizontal_alignment = 1
 

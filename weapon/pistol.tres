@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_data")
-damage = 10.0
+damage = 20.0
 headshot_multiplier = 2.0
 max_range = 200.0
 knockback = 4.0

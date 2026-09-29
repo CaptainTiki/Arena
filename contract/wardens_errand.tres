@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="ContractData" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://contract/contract_data.gd" id="1_contract"]
+[ext_resource type="Script" path="res://spawn/spawn_wave.gd" id="2_wave"]
+[ext_resource type="Resource" path="res://sponsor/warden.tres" id="3_warden"]
+
+[sub_resource type="Resource" id="Resource_ramp1"]
+script = ExtResource("2_wave")
+duration = 120.0
+alive_at_start = 3
+alive_at_end = 6
+spawn_interval = 2.0
+batch_size = 1
+weights = PackedFloat32Array(0.8, 0, 0.2)
+
+[sub_resource type="Resource" id="Resource_ramp2"]
+script = ExtResource("2_wave")
+duration = 360.0
+alive_at_start = 6
+alive_at_end = 12
+spawn_interval = 1.5
+batch_size = 2
+weights = PackedFloat32Array(0.65, 0.1, 0.25)
+
+[resource]
+script = ExtResource("1_contract")
+display_name = "THE WARDEN'S ERRAND"
+briefing = "The Warden wants ground held, and wants it seen. Collect what he sends down."
+type = 2
+time_limit = 480.0
+cash_reward = 500
+enemy_health_scale = 1.0
+enemy_damage_scale = 1.5
+ramp = Array[ExtResource("2_wave")]([SubResource("Resource_ramp1"), SubResource("Resource_ramp2")])
+target_sponsor = ExtResource("3_warden")
+target_count = 3

@@ -9,6 +9,8 @@ signal died(enemy: Enemy, hit: HitInfo)
 signal projectile_fired(enemy: Enemy, origin: Vector3, shot_velocity: Vector3)
 
 enum State { CHASE, WINDUP, LUNGE, RECOVER, DYING }
+## What the current windup is building toward.
+enum Attack { LUNGE, CHARGE, SLAM, SHOT }
 
 @export var data: EnemyData
 @export_flags_3d_physics var sight_mask: int = 1
@@ -17,13 +19,14 @@ enum State { CHASE, WINDUP, LUNGE, RECOVER, DYING }
 
 var _target: Node3D
 var _state: State = State.CHASE
+var _attack: Attack = Attack.LUNGE
 var _state_left: float = 0.0
 var _health: float = 0.0
 var _speed: float = 0.0
 var _lead_time: float = 0.0
 var _lead_accuracy: float = 0.0
-var _aura_left: float = 0.0
 var _charge_left: float = 0.0
+var _damage_scale: float = 1.0
 var _move_velocity: Vector3 = Vector3.ZERO
 var _knockback: Vector3 = Vector3.ZERO
 var _lunge_direction: Vector3 = Vector3.ZERO
@@ -39,26 +42,24 @@ var _head_layer: int = 0
 @onready var _visual: Node3D = $Visual
 @onready var _body_mesh: MeshInstance3D = $Visual/BodyMesh
 @onready var _material: StandardMaterial3D = _body_mesh.material_override as StandardMaterial3D
-## Only aura enemies have one: a unit-radius disc, scaled here to the aura's reach.
-@onready var _aura: Node3D = get_node_or_null(^"Aura")
+## Only slam enemies have arms: a pivot at shoulder height with the arms hanging below it.
+@onready var _arms: Node3D = get_node_or_null(^"Visual/Arms")
 
 
 func _ready() -> void:
 	_body_layer = collision_layer
 	_body_mask = collision_mask
 	_head_layer = _head.collision_layer
-	if _aura != null:
-		_aura.scale = Vector3(data.aura_radius, 1.0, data.aura_radius)
 
 
-func spawn(at: Vector3, target: Node3D) -> void:
+func spawn(at: Vector3, target: Node3D, health_scale: float = 1.0, damage_scale: float = 1.0) -> void:
 	_target = target
 	_state = State.CHASE
-	_health = data.max_health
+	_health = data.max_health * health_scale
+	_damage_scale = damage_scale
 	_speed = data.move_speed * randf_range(1.0 - data.speed_variance, 1.0 + data.speed_variance)
 	_lead_time = randf_range(0.0, data.lead_time_max)
 	_lead_accuracy = randf_range(data.lead_accuracy_min, data.lead_accuracy_max)
-	_aura_left = data.aura_interval
 	# First charge comes partway into the cooldown, and not from every heavy at once.
 	_charge_left = data.charge_cooldown * randf_range(0.3, 0.6)
 	_move_velocity = Vector3.ZERO
@@ -74,12 +75,17 @@ func spawn(at: Vector3, target: Node3D) -> void:
 	_head.collision_layer = _head_layer
 	_visual.scale = Vector3.ONE
 	_material.albedo_color = data.body_color
-	if _aura != null:
-		_aura.visible = true
+	if _arms != null:
+		_arms.rotation.x = 0.0
 
 
 func is_alive() -> bool:
 	return _state != State.DYING
+
+
+## Damage of one lunge or projectile, after the contract's scaling.
+func get_attack_damage() -> float:
+	return data.attack_damage * _damage_scale
 
 
 func take_hit(hit: HitInfo) -> void:
@@ -99,12 +105,14 @@ func _physics_process(delta: float) -> void:
 		_tick_pop(delta)
 		return
 
+	_charge_left = maxf(_charge_left - delta, 0.0)
+
 	var wish_velocity: Vector3 = Vector3.ZERO
 	match _state:
 		State.CHASE:
 			wish_velocity = _get_chase_velocity(delta)
-			if _should_attack():
-				_enter(State.WINDUP, data.attack_windup)
+			if _pick_attack():
+				_enter(State.WINDUP, _get_windup_time())
 		State.WINDUP:
 			_state_left -= delta
 			if _state_left <= 0.0:
@@ -117,7 +125,7 @@ func _physics_process(delta: float) -> void:
 				_lunge_connected = true
 				_strike(_lunge_direction, _get_lunge_damage())
 			# A charge that slams into a wall stops there.
-			if _state_left <= 0.0 or (is_on_wall() and data.attack_style == EnemyData.AttackStyle.AURA):
+			if _state_left <= 0.0 or (is_on_wall() and _attack == Attack.CHARGE):
 				_move_velocity = Vector3.ZERO
 				wish_velocity = Vector3.ZERO
 				collision_mask = _body_mask
@@ -129,10 +137,6 @@ func _physics_process(delta: float) -> void:
 				wish_velocity = _get_chase_velocity(delta)
 			if _state_left <= 0.0:
 				_enter(State.CHASE, 0.0)
-
-	if data.attack_style == EnemyData.AttackStyle.AURA:
-		_tick_aura(delta)
-		_charge_left = maxf(_charge_left - delta, 0.0)
 
 	_move_velocity = _move_velocity.move_toward(wish_velocity, data.acceleration * delta)
 	_knockback = _knockback.move_toward(Vector3.ZERO, data.knockback_friction * delta)
@@ -150,7 +154,7 @@ func _physics_process(delta: float) -> void:
 func _get_chase_velocity(delta: float) -> Vector3:
 	var distance: float = _get_target_distance()
 	match data.attack_style:
-		EnemyData.AttackStyle.AURA:
+		EnemyData.AttackStyle.SLAM:
 			if distance <= data.attack_range:
 				return Vector3.ZERO
 		EnemyData.AttackStyle.RANGED:
@@ -161,38 +165,53 @@ func _get_chase_velocity(delta: float) -> Vector3:
 	return _get_move_direction(delta) * _speed
 
 
-func _should_attack() -> bool:
+## Decides whether to attack now, and with what. Sets `_attack` when it returns true.
+func _pick_attack() -> bool:
+	var distance: float = _get_target_distance()
 	match data.attack_style:
 		EnemyData.AttackStyle.LUNGE:
-			return _get_target_distance() <= data.attack_range and _is_target_level()
-		EnemyData.AttackStyle.AURA:
-			if data.charge_cooldown <= 0.0 or _charge_left > 0.0:
-				return false
-			var gap: float = _get_target_distance()
-			return (gap >= data.charge_min_distance and gap <= data.charge_max_distance
+			_attack = Attack.LUNGE
+			return distance <= data.attack_range and _is_target_level()
+		EnemyData.AttackStyle.SLAM:
+			if distance <= data.slam_trigger_distance and _is_target_level():
+				_attack = Attack.SLAM
+				return true
+			_attack = Attack.CHARGE
+			return (data.charge_cooldown > 0.0 and _charge_left <= 0.0
+					and distance >= data.charge_min_distance and distance <= data.charge_max_distance
 					and _is_target_level() and _is_ground_clear())
 		EnemyData.AttackStyle.RANGED:
 			# Too close means back off first; rushing a shooter shuts it down.
-			var distance: float = _get_target_distance()
+			_attack = Attack.SHOT
 			return distance >= data.retreat_range and distance <= data.preferred_range and _can_see_target()
 	return false
 
 
+func _get_windup_time() -> float:
+	return data.slam_windup if _attack == Attack.SLAM else data.attack_windup
+
+
 func _finish_windup() -> void:
-	match data.attack_style:
-		EnemyData.AttackStyle.LUNGE:
-			_lunge_direction = _get_direction_to(_target.global_position)
-			_lunge_connected = false
-			_enter(State.LUNGE, data.lunge_duration)
-		EnemyData.AttackStyle.AURA:
+	match _attack:
+		Attack.LUNGE:
+			_start_lunge()
+		Attack.CHARGE:
 			_charge_left = data.charge_cooldown
 			collision_mask = _body_mask & ~charge_ignore_mask
-			_lunge_direction = _get_direction_to(_target.global_position)
-			_lunge_connected = false
-			_enter(State.LUNGE, data.lunge_duration)
-		EnemyData.AttackStyle.RANGED:
+			_start_lunge()
+		Attack.SLAM:
+			if _get_target_distance() <= data.slam_radius and _is_target_level():
+				_strike(_get_direction_to(_target.global_position), data.slam_damage)
+			_enter(State.RECOVER, data.slam_recover)
+		Attack.SHOT:
 			_shoot()
 			_enter(State.RECOVER, data.attack_recover)
+
+
+func _start_lunge() -> void:
+	_lunge_direction = _get_direction_to(_target.global_position)
+	_lunge_connected = false
+	_enter(State.LUNGE, data.lunge_duration)
 
 
 ## The one place that decides where to walk: along a navigation route to a point ahead of the target.
@@ -269,16 +288,14 @@ func _enter(state: State, duration: float) -> void:
 
 
 func _get_lunge_damage() -> float:
-	if data.attack_style == EnemyData.AttackStyle.AURA:
-		return data.charge_damage
-	return data.attack_damage
+	return data.charge_damage if _attack == Attack.CHARGE else data.attack_damage
 
 
 func _strike(direction: Vector3, damage: float) -> void:
 	if not _target.has_method(&"take_hit"):
 		return
 	var hit: HitInfo = HitInfo.new()
-	hit.damage = damage
+	hit.damage = damage * _damage_scale
 	hit.position = _target.global_position
 	hit.direction = direction
 	hit.target = _target
@@ -294,23 +311,27 @@ func _shoot() -> void:
 	projectile_fired.emit(self, origin, (aim - origin).normalized() * data.projectile_speed)
 
 
-func _tick_aura(delta: float) -> void:
-	_aura_left -= delta
-	if _aura_left > 0.0:
-		return
-	_aura_left = data.aura_interval
-	if _get_target_distance() <= data.aura_radius and _is_target_level():
-		_strike(_get_direction_to(_target.global_position), data.attack_damage)
-
-
 func _update_feedback(delta: float) -> void:
 	var winding_up: bool = _state == State.WINDUP
+	var raising_arms: bool = winding_up and _attack == Attack.SLAM
+
 	var resting: Color = data.windup_color if winding_up else data.body_color
 	var weight: float = 1.0 - exp(-data.flash_fade_speed * delta)
 	_material.albedo_color = _material.albedo_color.lerp(resting, weight)
-	var squash: float = data.windup_squash if winding_up else 1.0
-	var squash_weight: float = 1.0 - exp(-20.0 * delta)
-	_visual.scale.y = lerpf(_visual.scale.y, squash, squash_weight)
+
+	var squash: float = data.windup_squash if winding_up and not raising_arms else 1.0
+	_visual.scale.y = lerpf(_visual.scale.y, squash, 1.0 - exp(-20.0 * delta))
+
+	# Face the target, or the way it is hurtling.
+	var facing: Vector3 = _lunge_direction if _state == State.LUNGE else _get_direction_to(_target.global_position)
+	if not facing.is_zero_approx():
+		var yaw: float = atan2(-facing.x, -facing.z)
+		_visual.rotation.y = lerp_angle(_visual.rotation.y, yaw, 1.0 - exp(-data.turn_speed * delta))
+
+	if _arms != null:
+		var arm_target: float = deg_to_rad(data.arm_raise_degrees) if raising_arms else 0.0
+		var arm_speed: float = data.arm_raise_speed if raising_arms else data.arm_slam_speed
+		_arms.rotation.x = lerpf(_arms.rotation.x, arm_target, 1.0 - exp(-arm_speed * delta))
 
 
 func _die(hit: HitInfo) -> void:
@@ -319,8 +340,6 @@ func _die(hit: HitInfo) -> void:
 	collision_mask = 0
 	_head.collision_layer = 0
 	_material.albedo_color = data.hit_flash_color
-	if _aura != null:
-		_aura.visible = false
 	died.emit(self, hit)
 
 

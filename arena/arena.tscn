@@ -7,11 +7,11 @@
 [ext_resource type="PackedScene" path="res://combat/impact_marker.tscn" id="5_marker"]
 [ext_resource type="PackedScene" path="res://enemy/enemy.tscn" id="6_enemy"]
 [ext_resource type="Script" path="res://spawn/spawner.gd" id="7_spawner"]
-[ext_resource type="Script" path="res://spawn/spawn_wave.gd" id="8_wave"]
-[ext_resource type="Resource" path="res://spawn/wave_1_warmup.tres" id="9_wave1"]
-[ext_resource type="Resource" path="res://spawn/wave_2_build.tres" id="10_wave2"]
-[ext_resource type="Resource" path="res://spawn/wave_3_horde.tres" id="11_wave3"]
-[ext_resource type="Resource" path="res://spawn/wave_4_endgame.tres" id="12_wave4"]
+[ext_resource type="Script" path="res://contract/contract_data.gd" id="8_contract"]
+[ext_resource type="Resource" path="res://contract/first_blood.tres" id="9_first_blood"]
+[ext_resource type="Resource" path="res://contract/wardens_errand.tres" id="10_errand"]
+[ext_resource type="Resource" path="res://contract/long_night.tres" id="11_long_night"]
+[ext_resource type="PackedScene" path="res://audio/sfx.tscn" id="12_sfx"]
 [ext_resource type="Resource" path="res://feel/feel_default.tres" id="13_feel"]
 [ext_resource type="Script" path="res://feel/hitstop.gd" id="14_hitstop"]
 [ext_resource type="PackedScene" path="res://feel/damage_number.tscn" id="15_number"]
@@ -42,7 +42,10 @@ ambient_light_energy = 0.5
 script = ExtResource("1_arena")
 feel = ExtResource("13_feel")
 run = ExtResource("29_run")
+contracts = Array[ExtResource("8_contract")]([ExtResource("9_first_blood"), ExtResource("10_errand"), ExtResource("11_long_night")])
 pity_pod = ExtResource("24_pity")
+
+[node name="Sfx" parent="." instance=ExtResource("12_sfx")]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_arena")
@@ -72,7 +75,6 @@ recycle_oldest = true
 
 [node name="Spawner" type="Node3D" parent="."]
 script = ExtResource("7_spawner")
-waves = Array[ExtResource("8_wave")]([ExtResource("9_wave1"), ExtResource("10_wave2"), ExtResource("11_wave3"), ExtResource("12_wave4")])
 
 [node name="Pools" type="Node" parent="Spawner"]
 

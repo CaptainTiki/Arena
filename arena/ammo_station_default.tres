@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AmmoStationData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://arena/ammo_station_data.gd" id="1_data"]
+
+[resource]
+script = ExtResource("1_data")
+ammo = 12
+restock_time = 120.0
+warning_time = 15.0
+flash_rate = 3.0
+empty_color = Color(0.8, 0.1, 0.1, 1)
+warning_color = Color(1, 0.7, 0.1, 1)
+stocked_color = Color(0.2, 1, 0.3, 1)
+dark_color = Color(0.12, 0.12, 0.12, 1)

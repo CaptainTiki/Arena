@@ -1,29 +1,39 @@
 class_name Arena
 extends Node3D
 ## Top of the ownership spine. Children report up to here; Arena routes between them.
+## Runs one contract from briefing to summary.
+
+enum Outcome { WON, DIED, OUT_OF_TIME }
 
 @export var feel: FeelData
 @export var run: RunData
-## Where sponsor reputation is kept between runs.
-@export var reputation_path: String = "user://reputation.cfg"
+## Contracts on offer. The booked one is remembered in the profile.
+@export var contracts: Array[ContractData] = []
+## Where reputation, cash and the booking are kept between fights.
+@export var profile_path: String = "user://profile.cfg"
 
 @export_group("Pity Drop")
-## Dropped when the player has no ammo at all, so a run can't lock up.
+## Dropped when the player has no ammo at all, so a fight can't lock up.
 @export var pity_pod: PodData
 ## Seconds with zero ammo before the pity pod drops.
 @export var pity_delay: float = 6.0
 
 @export_group("Debug")
+## Always fight this contract, whatever is booked.
+@export var debug_contract: ContractData
 ## Reloads never drain the reserve, so feel can be tested without the ammo economy.
 @export var debug_infinite_reserve: bool = false
-## Start the spawn ramp this many seconds in, to test late-run density.
+## Start a density ramp this many seconds in, to test late-fight crowds.
 @export var debug_start_time: float = 0.0
 
+var _contract: ContractData
+var _contract_index: int = 0
 var _stats: RunStats = RunStats.new()
 var _run_time: float = 0.0
 var _run_over: bool = false
 var _summary_wait: float = 0.0
 var _empty_time: float = 0.0
+var _target_pods: int = 0
 var _hold_zones: Array[HoldZone] = []
 var _active_zone: int = 0
 
@@ -31,6 +41,7 @@ var _active_zone: int = 0
 @onready var _player: Player = $Player
 @onready var _hud: Hud = $Hud
 @onready var _summary: RunSummary = $RunSummary
+@onready var _sfx: Sfx = $Sfx
 @onready var _impact_pool: ScenePool = $ImpactPool
 @onready var _number_pool: ScenePool = $DamageNumberPool
 @onready var _hitstop: Hitstop = $Hitstop
@@ -42,6 +53,8 @@ var _active_zone: int = 0
 
 
 func _ready() -> void:
+	_book_contract()
+
 	_weapon.infinite_reserve = debug_infinite_reserve
 	_weapon.shot_fired.connect(_on_weapon_shot_fired)
 	_weapon.dry_fired.connect(_hud.flash_dry_fire)
@@ -54,10 +67,17 @@ func _ready() -> void:
 
 	_spawner.enemy_died.connect(_on_enemy_died)
 	_spawner.set_spawn_points(_level.get_spawn_points())
-	_spawner.set_elapsed(debug_start_time)
+	_spawner.health_scale = _contract.enemy_health_scale
+	_spawner.damage_scale = _contract.enemy_damage_scale
+	if _contract.type == ContractData.Type.EXTERMINATION:
+		_spawner.start_roster(_contract.roster)
+	else:
+		_spawner.start_ramp(_contract.ramp)
+		_spawner.set_elapsed(debug_start_time)
 	_spawner.target = _player
 
 	_hud.setup_sponsors(_sponsors.sponsors)
+	_hud.show_briefing(_contract, run.briefing_time)
 	_sponsors.standing_changed.connect(_hud.set_sponsor_progress)
 	_sponsors.sponsor_reacted.connect(_hud.show_sponsor_reaction)
 	_sponsors.drop_earned.connect(_on_sponsor_drop_earned)
@@ -69,6 +89,9 @@ func _ready() -> void:
 	_hold_zones = _level.get_hold_zones()
 	_activate_zone(0)
 
+	for station: AmmoStation in _level.get_ammo_stations():
+		station.collected.connect(_on_ammo_station_collected)
+
 
 func _process(delta: float) -> void:
 	if _run_over:
@@ -76,52 +99,105 @@ func _process(delta: float) -> void:
 		return
 	_hud.set_dash_charge(_player.get_dash_charge())
 	_hud.set_reload(_weapon.is_reloading(), _weapon.get_reload_progress())
-	_hud.set_stats(_stats.kills, _spawner.get_alive_count(), _run_time)
+	_hud.set_stats(_stats.kills, _spawner.get_alive_count(), _contract.time_limit - _run_time)
+	_hud.set_objective(_get_objective_text())
 
 
 func _physics_process(delta: float) -> void:
 	if _run_over:
 		return
 	_run_time += delta
-	if _run_time >= run.run_length:
-		_end_run.call_deferred(true)
-		return
 	_tick_pity(delta)
 	if not _hold_zones.is_empty():
 		_sponsors.set_holding(_hold_zones[_active_zone].is_occupied())
+
+	if _is_goal_met():
+		_end_run.call_deferred(Outcome.WON)
+	elif _run_time >= _contract.time_limit:
+		var survived: bool = _contract.type == ContractData.Type.SURVIVAL
+		_end_run.call_deferred(Outcome.WON if survived else Outcome.OUT_OF_TIME)
 
 
 func is_run_over() -> bool:
 	return _run_over
 
 
-func _end_run(survived: bool) -> void:
+func get_contract() -> ContractData:
+	return _contract
+
+
+func _book_contract() -> void:
+	var profile: ProfileStore = ProfileStore.new(profile_path)
+	_contract_index = posmod(profile.get_contract_index(), maxi(contracts.size(), 1))
+	_contract = debug_contract if debug_contract != null else contracts[_contract_index]
+
+
+func _is_goal_met() -> bool:
+	match _contract.type:
+		ContractData.Type.EXTERMINATION:
+			return _spawner.is_roster_finished()
+		ContractData.Type.SCAVENGER:
+			return _target_pods >= _contract.target_count
+	return false
+
+
+func _get_objective_text() -> String:
+	match _contract.type:
+		ContractData.Type.EXTERMINATION:
+			var text: String = "%d OF %d LEFT" % [_spawner.get_roster_remaining(), _contract.get_roster_total()]
+			var next_wave: float = _spawner.get_next_wave_in()
+			if next_wave >= 0.0:
+				text += "      NEXT WAVE %s" % Hud.format_clock(next_wave)
+			return text
+		ContractData.Type.SCAVENGER:
+			return "%s PODS  %d OF %d" % [
+					_contract.target_sponsor.display_name, _target_pods, _contract.target_count]
+	return "SURVIVE"
+
+
+func _end_run(outcome: Outcome) -> void:
 	if _run_over:
 		return
 	_run_over = true
-	_stats.time_survived = minf(_run_time, run.run_length)
+	_stats.time_survived = minf(_run_time, _contract.time_limit)
 
-	var store: ReputationStore = ReputationStore.new(reputation_path)
+	var profile: ProfileStore = ProfileStore.new(profile_path)
 	var results: Array[SponsorResult] = []
 	for index: int in _sponsors.sponsors.size():
 		var result: SponsorResult = SponsorResult.new()
 		result.sponsor = _sponsors.sponsors[index]
 		result.drops = _sponsors.get_drop_count(index)
 		result.standing = _sponsors.get_progress(index)
-		result.reputation_before = store.get_reputation(result.sponsor)
+		result.reputation_before = profile.get_reputation(result.sponsor)
 		result.reputation_after = result.reputation_before + _get_reputation_gain(result.drops)
-		store.set_reputation(result.sponsor, result.reputation_after)
+		profile.set_reputation(result.sponsor, result.reputation_after)
 		results.append(result)
-	store.save()
+	var cash_earned: int = _contract.cash_reward if outcome == Outcome.WON else 0
+	profile.set_cash(profile.get_cash() + cash_earned)
+	profile.save()
 
-	# Freeze the world behind the summary. The intent keeps listening so the run can be restarted.
+	# Freeze the world behind the summary. The intent keeps listening so the next fight can be started.
 	var frozen: Array[Node] = [_spawner, _sponsors, _pod_dropper, _player]
 	for node: Node in frozen:
 		node.process_mode = Node.PROCESS_MODE_DISABLED
 	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
 	_hud.visible = false
 	_summary_wait = run.summary_input_delay
-	_summary.show_summary(survived, _stats, results)
+	_summary.show_summary(
+			_get_outcome_title(outcome), _contract, cash_earned, profile.get_cash(), _stats, results)
+	if outcome == Outcome.WON:
+		_sfx.play_contract_won()
+	else:
+		_sfx.play_contract_lost()
+
+
+func _get_outcome_title(outcome: Outcome) -> String:
+	match outcome:
+		Outcome.WON:
+			return "CONTRACT COMPLETE"
+		Outcome.DIED:
+			return "YOU DIED"
+	return "OUT OF TIME"
 
 
 func _get_reputation_gain(drops: int) -> int:
@@ -130,18 +206,26 @@ func _get_reputation_gain(drops: int) -> int:
 	return mini(ceili(float(drops) / float(run.drops_per_reputation)), run.max_reputation_gain)
 
 
+func _get_next_contract_index() -> int:
+	return (_contract_index + 1) % maxi(contracts.size(), 1)
+
+
 func _tick_summary(delta: float) -> void:
 	var was_waiting: bool = _summary_wait > 0.0
 	_summary_wait -= delta
 	# Read both every frame so neither press is left queued.
-	var fire: bool = _intent.consume_fire()
-	var reload: bool = _intent.consume_reload()
+	var again: bool = _intent.consume_fire()
+	var next: bool = _intent.consume_reload()
 	if _summary_wait > 0.0:
 		return
 	if was_waiting:
-		_summary.show_prompt()
+		_summary.show_prompt(contracts[_get_next_contract_index()])
 		return
-	if fire or reload:
+	if next:
+		var profile: ProfileStore = ProfileStore.new(profile_path)
+		profile.set_contract_index(_get_next_contract_index())
+		profile.save()
+	if again or next:
 		get_tree().reload_current_scene()
 
 
@@ -155,6 +239,7 @@ func _tick_pity(delta: float) -> void:
 		_empty_time = 0.0
 		_pod_dropper.drop(pity_pod, null)
 		_hud.show_pickup("OUT OF AMMO - SCRAPS INCOMING", Color.WHITE)
+		_sfx.play_pod_alarm()
 
 
 ## Only one hold zone is live at a time.
@@ -195,7 +280,7 @@ func _on_player_damaged(hit: HitInfo) -> void:
 
 func _on_player_died() -> void:
 	# Deferred: this arrives mid-physics, from inside an enemy's attack.
-	_end_run.call_deferred(false)
+	_end_run.call_deferred(Outcome.DIED)
 
 
 func _on_enemy_died(_enemy: Enemy, hit: HitInfo) -> void:
@@ -209,6 +294,7 @@ func _on_enemy_died(_enemy: Enemy, hit: HitInfo) -> void:
 func _on_sponsor_drop_earned(sponsor: SponsorData, pod: PodData) -> void:
 	_pod_dropper.drop(pod, sponsor)
 	_hud.show_approval(sponsor, pod)
+	_sfx.play_pod_alarm()
 	if sponsor.trigger == SponsorData.Trigger.HOLD_ZONE:
 		# A paid-out zone is spent; the next one is somewhere else, so holding ground means crossing it.
 		_activate_zone(_active_zone + 1)
@@ -223,6 +309,8 @@ func _on_pod_landed(pod: Pod) -> void:
 
 func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
 	_stats.pods_collected += 1
+	if sponsor != null and sponsor == _contract.target_sponsor:
+		_target_pods += 1
 	match pod_data.effect:
 		PodData.Effect.AMMO:
 			_weapon.add_reserve(roundi(pod_data.amount))
@@ -234,4 +322,11 @@ func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
 			_weapon.quicken_fire(pod_data.amount)
 		PodData.Effect.DASH_COOLDOWN:
 			_player.quicken_dash(pod_data.amount)
+		PodData.Effect.DAMAGE:
+			_weapon.boost_damage(pod_data.amount)
 	_hud.show_pickup(pod_data.display_name, Color.WHITE if sponsor == null else sponsor.color)
+
+
+func _on_ammo_station_collected(station: AmmoStation) -> void:
+	_weapon.add_reserve(station.get_ammo())
+	_hud.show_pickup("AMMO +%d" % station.get_ammo(), station.data.stocked_color)

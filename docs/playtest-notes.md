@@ -110,3 +110,32 @@ Still open: overall difficulty was called tough and possibly too harsh; tuning p
 * **Ammo:** running out a lot. Sponsors should not be the only source. Wants fixed ammo stations around the map ("vending machines"): several of them, restocking on a timer of a minute or two, with lights showing state (flashing when about to restock, green when stocked). Possibly hold nearby for a few seconds to collect.
 * **Pods:** should not slam straight down. Wants them to float down on a parachute over 15 to 20 seconds, drifting one way then another before settling.
 * **Heavy:** likes it as it is now, including the area size, but dislikes the disc on the ground. The reach should not be advertised. Think big arms that it swings down.
+
+## Direction decisions (2026-09-28)
+
+Decided by the tester:
+
+* **Pods:** parachute descent, 15 to 20 s, drifting. The landing spot is NOT shown in advance; that is the point. The pod is announced, you look up, guess and commit, and risk another look. The beacon only lights once the pod is down and collectable. Wanted an alarm on the announcement (no audio in the greybox, so visual only for now).
+* **Ammo stations:** walk-up grab, no holding.
+* **Warden:** swaps from plain ammo to a bigger bonus (damage up, large ammo crate).
+* **Pity drop:** keep. May carry cash or coin later.
+* **Heavy:** no floor disc; arms that swing down.
+
+Proposed by the tester for the next prototype stage, still greybox:
+
+* **A home base** between fights, with things to walk up to: a weapon rack, a wardrobe for loadout, a computer to book the next fight, and somewhere to read up on sponsors, arenas and enemies.
+* **Fights as contracts:** each one states its time limit, its enemies and a cash reward.
+* **Less swarm, more danger:** roughly double the damage enemies take, and far fewer of them, so a roster like "4 grunts, 3 rifles, 2 shotguns and a heavy" tells you what you are up against.
+* **Money** buys weapons, armour and mods that change the loadout.
+
+This replaces the 15-minute ramp as the main structure, so the pacing-ramp rework was not built.
+
+## More direction decisions (2026-09-28)
+
+* **Contract types:** extermination, survival and scavenger ("collect the Warden 4 times").
+* **Extermination ends** when everything is dead: kill everything and win. The timer acts as the difficulty curve, possibly.
+* **Build order agreed:** contracts and combat pivot, then new enemy types, then the base, then the economy.
+* **The kickoff doc is not binding.** "We find the game. We find the fun." Nothing in it is chiselled in stone, including the no-audio rule. Sound is in.
+* **Home base vision:** display trophies, build the loadout, pick a mission and get paid, talk to an agent who is finding the next fight, research enemies and the next arena, learn the sponsors.
+
+Built in response: contract resources with three starting contracts (First Blood, The Warden's Errand, The Long Night), roster spawning with waves that arrive early when the floor is cleared, per-contract enemy health and damage scaling, pistol damage doubled to 20, cash and booking saved to a profile, a contract briefing card and objective line, and generated beep sounds for pod drops and contract results.

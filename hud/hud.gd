@@ -18,12 +18,15 @@ var _crosshair_tween: Tween
 var _damage_tween: Tween
 var _approval_tween: Tween
 var _pickup_tween: Tween
+var _briefing_tween: Tween
 var _meters: Array[SponsorMeter] = []
 
 @export var approval_hold_time: float = 1.6
 @export var approval_fade_time: float = 0.6
 @export var pickup_time: float = 1.4
 
+@onready var _objective_label: Label = $ObjectiveLabel
+@onready var _briefing_label: Label = $BriefingLabel
 @onready var _meters_root: Control = $SponsorMeters
 @onready var _approval_label: Label = $ApprovalLabel
 @onready var _approval_detail: Label = $ApprovalDetail
@@ -45,6 +48,7 @@ func _ready() -> void:
 	_approval_label.modulate.a = 0.0
 	_approval_detail.modulate.a = 0.0
 	_pickup_label.modulate.a = 0.0
+	_briefing_label.modulate.a = 0.0
 	for child: Node in _meters_root.get_children():
 		_meters.append(child as SponsorMeter)
 
@@ -71,7 +75,7 @@ func show_approval(sponsor: SponsorData, pod: PodData) -> void:
 	if _approval_tween != null:
 		_approval_tween.kill()
 	_approval_label.text = "%s APPROVES" % sponsor.display_name
-	_approval_detail.text = "%s incoming - follow the beacon" % pod.display_name
+	_approval_detail.text = "%s incoming - look up" % pod.display_name
 	_approval_label.modulate = sponsor.color
 	_approval_detail.modulate = sponsor.color
 	_approval_label.pivot_offset = _approval_label.size * 0.5
@@ -112,11 +116,32 @@ func flash_damage() -> void:
 	_damage_tween.tween_property(_damage_flash, ^"color:a", 0.0, damage_flash_time)
 
 
-func set_stats(kills: int, alive: int, elapsed: float) -> void:
-	var seconds: int = int(elapsed)
+func set_stats(kills: int, alive: int, time_left: float) -> void:
+	_stats_label.text = "%s LEFT   KILLS %d   ALIVE %d" % [format_clock(time_left), kills, alive]
+
+
+func set_objective(text: String) -> void:
+	_objective_label.text = text
+
+
+## The contract card shown as the fight starts.
+func show_briefing(contract: ContractData, seconds: float) -> void:
+	if _briefing_tween != null:
+		_briefing_tween.kill()
+	_briefing_label.text = "%s\n%s\n\n%s\nEnemies: %s\nTime limit: %s      Pays: $%d" % [
+			contract.display_name, contract.briefing, contract.get_goal(),
+			contract.get_enemy_summary(), format_clock(contract.time_limit), contract.cash_reward]
+	_briefing_label.modulate.a = 1.0
+	_briefing_tween = create_tween()
+	_briefing_tween.tween_interval(seconds)
+	_briefing_tween.tween_property(_briefing_label, ^"modulate:a", 0.0, 0.8)
+
+
+static func format_clock(seconds: float) -> String:
+	var whole: int = maxi(ceili(seconds), 0)
 	@warning_ignore("integer_division")
-	var minutes: int = seconds / 60
-	_stats_label.text = "%02d:%02d   KILLS %d   ALIVE %d" % [minutes, seconds % 60, kills, alive]
+	var minutes: int = whole / 60
+	return "%02d:%02d" % [minutes, whole % 60]
 
 
 ## Pass a negative reserve to show it as infinite.

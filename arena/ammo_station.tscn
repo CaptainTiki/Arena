@@ -1,0 +1,65 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://arena/ammo_station.gd" id="1_station"]
+[ext_resource type="Resource" path="res://arena/ammo_station_default.tres" id="2_data"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_cabinet"]
+size = Vector3(1.2, 1.6, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cabinet"]
+albedo_color = Color(0.2, 0.22, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_cabinet"]
+material = SubResource("StandardMaterial3D_cabinet")
+size = Vector3(1.2, 1.6, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_light"]
+resource_local_to_scene = true
+shading_mode = 0
+albedo_color = Color(0.8, 0.1, 0.1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_light"]
+size = Vector3(0.35, 8, 0.35)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pickup"]
+shading_mode = 0
+albedo_color = Color(0.2, 0.8, 1, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pickup"]
+material = SubResource("StandardMaterial3D_pickup")
+size = Vector3(0.7, 0.4, 0.7)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_pickup"]
+height = 2.4
+radius = 2.0
+
+[node name="AmmoStation" type="StaticBody3D"]
+script = ExtResource("1_station")
+data = ExtResource("2_data")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+shape = SubResource("BoxShape3D_cabinet")
+
+[node name="Cabinet" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.8, 0)
+mesh = SubResource("BoxMesh_cabinet")
+
+[node name="Light" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_light")
+material_override = SubResource("StandardMaterial3D_light")
+
+[node name="Pickup" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_pickup")
+
+[node name="PickupArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="PickupShape" type="CollisionShape3D" parent="PickupArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+shape = SubResource("CylinderShape3D_pickup")
