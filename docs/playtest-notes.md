@@ -648,3 +648,54 @@ From the tester, to be picked up when the overhaul starts.
 * **Cash is now what gates the weapons.** Came back with $1180, bought the rifle ($600) and the extended mag ($350), left with $230. The .357 is on offer at $900 and not affordable yet.
 * **Every sponsor offer has now arrived after three wins.** Thresholds are placeholders and wait for the overhaul.
 * Not yet tried by the tester in a fight: the rifle, the .357, a lost request, the jealous mail.
+
+## Rifle, first play (2026-09-30, The Long Night then The Warden's Errand)
+
+* **The rifle is a "do not use".** Only the shotgun is worth the slot. From the tester: a semi-auto rifle needs a zoom and massive damage, with a short magazine and a long reload. Otherwise it should be an SMG or a machine gun.
+* **Log, Long Night with pistol and rifle:** died at 1:53 with 15 kills. 21 rifle shots: 8 on a weak point, 8 on the body, 5 missed. At 35 damage and 4x, a weak-point hit did 140 against grunts with 160 health in that contract, so the rifle never killed in one shot. 80 of the 100 damage taken was grunt lunges.
+* **Log, Warden's Errand with pistol and shotgun:** died at 2:55 with 6 kills. The last five hits landed in five seconds with the player not moving at all; looks like the game was left running.
+* Both were losses with nobody asking, so no favour moved. Wallet $203.
+* **Wanted:** a debug screen to reset the save, add money and add favour, so parts of the game can be reached quickly and the climb can be judged again from the start.
+
+## Debug kiosk and scoped rifle (2026-09-30, not yet playtested)
+
+**Debug kiosk.** A grey pedestal on the west wall of the base, the same menu as the others.
+
+| Line | Does |
+|-|-|
+| Add $500 | Choose or `D` adds, `A` takes away. Stops at zero |
+| Favour, one line per sponsor | Choose or `D` adds 25, `A` takes 25. Mail the new level brings arrives at once |
+| Open every contract | Unlocks the whole ladder |
+| Reset the save | Choose twice. Back to the pistol, $100, no favour, the welcome mail unread, tier 1 only |
+
+* Every use writes a `debug` line to the log, so numbers that came from the kiosk are not read as earned.
+* Taking favour away does not take back a mail or an offer that has already arrived. Only the reset does.
+
+**Rifle**
+
+| | Before | Now |
+|-|-|-|
+| Damage | 35 | 140 |
+| Weak point | 4x (140) | 4x (560) |
+| Magazine | 5 | 3 |
+| Spare rounds, start and most | 15, 25 | 9, 15 |
+| Reload | 2.0 s | 3.0 s |
+| Between shots | 0.6 s | 1.2 s |
+| Share of an ammo pickup | 0.4 | 0.25 (a 12-round station is 3) |
+| Heard from | 60 m | 80 m |
+
+* One body shot kills a grunt (80) or a shooter (40) at normal health. A heavy (280) takes two in the body or one in the core. On The Long Night, with doubled health, a grunt takes two body shots or one weak-point hit.
+* **Aim** is held: right mouse, or the left trigger. The view zooms from 90 to 30 degrees, the gun model is hidden, turning slows to match, walking drops to 40% and sprinting stops. A reload or a dash brings the sights down.
+* **From the hip** the rifle scatters inside 5 degrees, so it has to be aimed to be trusted.
+* Aiming is data on the weapon (`aim_fov`, `hip_spread_degrees`, `aim_move_scale`). Only the rifle has it. There is no scope overlay; the crosshair is the same.
+* Against the .357 (60, 6x for 360, six rounds): the rifle is the long-range one, the .357 the close one. Whether both earn a slot is for play to say.
+
+**Tested headless:** each debug line, including the reset wiping favour, mail, offers, the ladder and the booking, and being saved; the rifle's numbers loading; 200 hip shots scattering up to 5 degrees; aimed shots dead straight; the pistol unaffected. Not tested: the zoom itself, how it feels to turn while zoomed, the left trigger, and anything about the rifle against robots.
+
+**Lost while testing:** two of the oldest logs in `.logs/` (the first Warden's Errand and Long Night runs of 2026-09-29) were pushed out by test runs. Their numbers are in the table under "What the first logs say".
+
+## Debug kiosk and scoped rifle, playtest (2026-09-30, First Blood with the .357 and the rifle)
+
+* **Felt good, good upgrades.** The rifle is "reach out and touch someone", but it sucks when something is up close. The .357 was good as a pistol. Enjoyed both.
+* **Log:** added $1500 at the debug kiosk, bought the .357, won First Blood in 3:03 with 26 kills from 38 shots. Rifle: 16 shots, 9 on a weak point, none missed. .357: 22 shots, 5 on a weak point, 4 missed. Hit three times all fight. Two station buys at $19 and $10.
+* The rifle's weakness up close is what it was built for; whether the second slot should cover it (the .357 did here) or the rifle should get a hip-fire option is a slot question, not a rifle question.

@@ -53,6 +53,7 @@ Test scripts extend `SceneTree`. Things that have bitten before:
 * Check the test lane for crates and pillars before blaming game code.
 * Set `profile_path` on `Game` or `Arena` to a test file and delete it afterwards, so the real save is untouched.
 * Set `RunLog.directory` to a `user://` folder, or the test writes into the tester's `.logs/`. The base and the arena each have their own `RunLog` node.
+* Through `game.tscn` the base opens its log in `_ready`, before a test can redirect it, so one file always lands in `.logs/`. Only the newest 10 are kept, so that file can push out one of the tester's. List `.logs/` before the run and delete only what the run added. This has already cost two of the tester's logs.
 * `arena.tscn` on its own fights `default_contract` (or `debug_contract`) carrying all four weapons. Through `game.tscn` it carries the loadout in the save.
 * On its own, the arena reloads itself after the summary. A reloaded scene loses exports set on the instance, so it is back on the real profile and log folder.
 * Fire with `player.get_weapon()`, not a weapon reference taken at the start; the weapon in hand changes.
@@ -72,11 +73,11 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 As of 2026-09-30, on the laptop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again. Numbers get tuned once the arc has been played.
 
-Every system in the slice doc is built. Played so far: perception AI (liked a lot), the kiosk menus (liked), and two wins with the shotgun bought in between. **Built but not yet played:** the door, shop, mail and cash-only stations (2026-09-30), and controller support. Sponsors, pods and rewards are due a full overhaul (names, personalities, triggers), so their numbers are being ignored on purpose until then.
+Every system in the slice doc is built. Played so far: perception AI (liked a lot), the kiosk menus (liked), and two wins with the shotgun bought in between. The door, shop, mail and cash-only stations have been played and liked. **Built but not yet played:** the debug kiosk in the base (add cash, add favour, open every contract, reset the save), the scoped rifle, and controller support. Sponsors, pods and rewards are due a full overhaul (names, personalities, triggers), so their numbers are being ignored on purpose until then.
 
 The loop as built: start in the base with a pistol and $100. Read the mail and book a contract at the agent's terminal, shop, set the loadout at the locker, then go through the door, which only opens once a contract is booked. Fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. Favour is standing and is never spent: at 35 the Warden mails an offer and the shotgun appears in the shop, the Marksman's rifle at 90, the Butcher's .357 at 160. Cash buys everything: those weapons, vests, stims, a pistol mod, and ammo or health at stations mid-fight, where the price is shown in yellow and falls to half while the shelf sits untouched. Losing a contract a sponsor asked for costs favour with them.
 
-Keys: `E` interact and pay, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
+Keys: `E` interact and pay, right mouse aims a weapon that has a scope (the rifle), `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
 
 Every number in the economy is a placeholder. Nothing has been balanced; the twenty-minute arc has not been played end to end.
 

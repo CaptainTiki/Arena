@@ -134,6 +134,12 @@ func set_offered(id: StringName) -> void:
 	_config.set_value(OFFERED, String(id), true)
 
 
+## Back to an empty profile. Nothing is written until the next save.
+func clear() -> void:
+	_config = ConfigFile.new()
+	_config.set_value(META, "version", VERSION)
+
+
 func save() -> void:
 	var error: Error = _config.save(_path)
 	if error != OK:

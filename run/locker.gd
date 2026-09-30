@@ -238,6 +238,33 @@ func settle(
 	return results
 
 
+## Debug aid: money from nowhere.
+func add_cash(amount: int) -> void:
+	profile.set_cash(maxi(get_cash() + amount, 0))
+	profile.save()
+
+
+## Debug aid: moves favour with `sponsor`, and delivers any mail that brings.
+func add_favour(sponsor: SponsorData, amount: int) -> void:
+	profile.set_favour(sponsor, get_favour(sponsor) + amount)
+	_deliver_mail([], null, false)
+	profile.save()
+
+
+## Debug aid: opens the whole ladder.
+func unlock_all_contracts() -> void:
+	for contract: ContractData in catalog.contracts:
+		profile.set_tier_won(maxi(profile.get_tier_won(), contract.tier))
+	profile.save()
+
+
+## Debug aid: wipes the save back to a new profile.
+func reset() -> void:
+	profile.clear()
+	_give_starters()
+	profile.save()
+
+
 func _give_starters() -> void:
 	var changed: bool = false
 	if not profile.is_started():

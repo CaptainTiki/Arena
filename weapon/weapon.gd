@@ -21,6 +21,8 @@ signal reload_finished
 
 ## Debug aid: reloads never drain the reserve.
 var infinite_reserve: bool = false
+## Set by the wielder while the sights are up.
+var aiming: bool = false
 
 var _stats: WeaponData
 var _mag: int = 0
@@ -54,6 +56,8 @@ func _physics_process(delta: float) -> void:
 func _process(delta: float) -> void:
 	_kick = lerpf(_kick, 0.0, 1.0 - exp(-_stats.kick_recover_speed * delta))
 	var dip: float = sin(get_reload_progress() * PI) * _stats.reload_dip if is_reloading() else 0.0
+	# Out of the way of the zoomed view.
+	_gun.visible = not aiming
 	_gun.position = _gun_rest + Vector3(0.0, -dip, _kick * _stats.kick_distance)
 
 
@@ -86,6 +90,7 @@ func try_reload() -> void:
 
 func holster() -> void:
 	_reload_left = 0.0
+	aiming = false
 	visible = false
 
 
@@ -196,10 +201,13 @@ func _rank(hit: HitInfo) -> int:
 
 func _get_pellet_direction() -> Vector3:
 	var aim: Basis = aim_origin.global_basis
-	if _stats.spread_degrees <= 0.0:
+	var spread: float = _stats.spread_degrees
+	if _stats.aim_fov > 0.0 and not aiming:
+		spread = maxf(spread, _stats.hip_spread_degrees)
+	if spread <= 0.0:
 		return -aim.z
 	# Even over the disc, so pellets don't bunch in the middle.
-	var radius: float = tan(deg_to_rad(_stats.spread_degrees)) * sqrt(randf())
+	var radius: float = tan(deg_to_rad(spread)) * sqrt(randf())
 	var angle: float = randf() * TAU
 	return (-aim.z + aim.x * cos(angle) * radius + aim.y * sin(angle) * radius).normalized()
 

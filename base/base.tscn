@@ -75,6 +75,12 @@ kind = 2
 title = "AGENT'S TERMINAL"
 color = Color(0.4, 1, 0.5, 1)
 
+[node name="Debug" parent="Kiosks" instance=ExtResource("4_kiosk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.5, 0, 3)
+kind = 4
+title = "DEBUG"
+color = Color(0.6, 0.6, 0.6, 1)
+
 [node name="Door" parent="Kiosks" instance=ExtResource("8_door")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7.7)
 

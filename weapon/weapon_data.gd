@@ -32,6 +32,14 @@ extends Resource
 ## Seconds after drawing the weapon before it can fire.
 @export var draw_time: float = 0.3
 
+@export_group("Aim")
+## Field of view while aiming down the sights, degrees. Zero means this weapon can't be aimed.
+@export var aim_fov: float = 0.0
+## Shots scatter inside a cone this many degrees off the aim when a weapon that can be aimed is fired without aiming.
+@export var hip_spread_degrees: float = 0.0
+## Multiplies walking speed while aiming.
+@export var aim_move_scale: float = 0.5
+
 @export_group("Recoil")
 ## Upward aim kick per shot.
 @export var recoil_pitch_degrees: float = 3.4

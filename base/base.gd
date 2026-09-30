@@ -19,6 +19,10 @@ signal arena_entered(contract: ContractData)
 ## The newest this many are listed at the terminal.
 @export var max_mail_shown: int = 13
 
+@export_group("Debug")
+@export var debug_cash_step: int = 500
+@export var debug_favour_step: int = 25
+
 @export_group("Door")
 @export var door_shut_color: Color = Color(0.8, 0.15, 0.15)
 @export var door_open_color: Color = Color(0.3, 1.0, 0.4)
@@ -33,6 +37,8 @@ var _card: ContractData
 var _reading_mail: bool = false
 ## The contract taken at the terminal, or null. The door leads to it.
 var _booked: ContractData
+## True once "reset the save" has been chosen once; choosing it again does it.
+var _reset_armed: bool = false
 ## The last thing that happened at this kiosk, shown at the foot of the menu.
 var _message: String = ""
 
@@ -151,6 +157,7 @@ func _get_distance(kiosk: Kiosk) -> float:
 
 func _open_kiosk(kiosk: Kiosk) -> void:
 	_open = kiosk
+	_reset_armed = false
 	_card = null
 	_reading_mail = false
 	_message = ""
@@ -190,6 +197,8 @@ func _build() -> void:
 				_list_mail(entries)
 			else:
 				_list_terminal(entries)
+		Kiosk.Kind.DEBUG:
+			_list_debug(entries)
 	entries.append(MenuEntry.heading(""))
 	entries.append(MenuEntry.option("Step away", "", "Back to the room.", _close))
 	_panel.show_menu(title, _locker.get_wallet_text(), entries, _message)
@@ -317,6 +326,69 @@ func _list_mail(entries: Array[MenuEntry]) -> void:
 			entry.color = message.sender.color
 		entries.append(entry)
 	entries.append(MenuEntry.option("Back to the terminal", "", "", _show_mail.bind(false)))
+
+
+## For testing, not for players: money and favour from nowhere, and a way back to a new save.
+func _list_debug(entries: Array[MenuEntry]) -> void:
+	entries.append(MenuEntry.option(
+			"Add $%d" % debug_cash_step, "$%d" % _locker.get_cash(),
+			"Choose, or press D, to add. A takes it away.", _debug_cash.bind(1)))
+	entries[-1].nudge = _debug_cash
+	for sponsor: SponsorData in catalog.sponsors:
+		var entry: MenuEntry = MenuEntry.option(
+				"Favour   %s" % sponsor.display_name, "<  %d  >" % _locker.get_favour(sponsor),
+				"Choose, or press D, to add %d. A takes it away.\n\nMail that the new level brings arrives at once." % debug_favour_step,
+				_debug_favour.bind(1, sponsor))
+		entry.nudge = _debug_favour.bind(sponsor)
+		entry.color = sponsor.color
+		entries.append(entry)
+	entries.append(MenuEntry.option(
+			"Open every contract", "", "Unlocks the whole ladder.", _debug_unlock_contracts))
+	entries.append(MenuEntry.option(
+			"Reset the save", "sure?" if _reset_armed else "",
+			"Back to a new profile: the pistol, $%d, no favour, no mail read, tier 1 only.\n\nChoose twice." % catalog.starting_cash,
+			_debug_reset))
+
+
+func _debug_cash(step: int) -> void:
+	_locker.add_cash(step * debug_cash_step)
+	_message = "Wallet: $%d." % _locker.get_cash()
+	_log_debug("cash")
+
+
+func _debug_favour(step: int, sponsor: SponsorData) -> void:
+	var unread: int = _locker.count_unread()
+	_locker.add_favour(sponsor, step * debug_favour_step)
+	_message = "%s: %d." % [sponsor.display_name, _locker.get_favour(sponsor)]
+	if _locker.count_unread() > unread:
+		_message += " New mail."
+	_log_debug("favour")
+
+
+func _debug_unlock_contracts() -> void:
+	_locker.unlock_all_contracts()
+	_message = "Every contract is open."
+	_log_debug("contracts")
+
+
+func _debug_reset() -> void:
+	if not _reset_armed:
+		_reset_armed = true
+		_message = "Choose again to wipe the save."
+		return
+	_reset_armed = false
+	_locker.reset()
+	_booked = null
+	_refresh_door()
+	_message = "Save reset."
+	_log_debug("reset")
+
+
+## Marks the log, so numbers that came from the debug kiosk are not read as earned.
+func _log_debug(what: String) -> void:
+	var entry: Dictionary = _describe_wallet()
+	entry["what"] = what
+	_log.log_world("debug", entry)
 
 
 func _get_owned_weapons() -> Array[ItemData]:

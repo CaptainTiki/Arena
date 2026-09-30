@@ -7,7 +7,7 @@
 script = ExtResource("1_script")
 id = &"rifle"
 display_name = "RIFLE"
-description = "Five rounds, slow, and it reaches right across the arena. Weak points from anywhere."
+description = "Three rounds and a long reload. Hold aim to look down the scope: one shot drops anything small, and a weak point drops anything. Wild from the hip."
 category = 0
 price_cash = 600
 weapon = ExtResource("e0")

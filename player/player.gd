@@ -90,6 +90,7 @@ func equip(loadout: Loadout) -> void:
 
 
 func _process(delta: float) -> void:
+	_weapon.aiming = is_aiming()
 	_apply_look(delta)
 	_update_recoil(delta)
 	_update_shake(delta)
@@ -215,6 +216,12 @@ func get_pitch() -> float:
 	return _pitch
 
 
+## True while the sights are up. Only some weapons have them, and a reload or a dash brings them down.
+func is_aiming() -> bool:
+	return armed and _weapon.get_stats().aim_fov > 0.0 and _intent.is_aiming() \
+			and not _weapon.is_reloading() and not is_dashing()
+
+
 func is_dashing() -> bool:
 	return _dash_time_left > 0.0
 
@@ -260,6 +267,8 @@ func _apply_ground_movement(wish_direction: Vector3, delta: float) -> void:
 	var top_speed: float = data.sprint_speed * _sprint_scale if _is_sprinting() else data.walk_speed
 	var backward: float = maxf(_intent.get_move().y, 0.0)
 	top_speed *= lerpf(1.0, data.backpedal_multiplier, backward)
+	if is_aiming():
+		top_speed *= _weapon.get_stats().aim_move_scale
 	var target: Vector3 = wish_direction * top_speed
 	var horizontal: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
 	var rate: float = data.deceleration if wish_direction.is_zero_approx() else data.acceleration
@@ -270,7 +279,7 @@ func _apply_ground_movement(wish_direction: Vector3, delta: float) -> void:
 
 ## Sprint only counts while moving forward.
 func _is_sprinting() -> bool:
-	return _intent.is_sprinting() and _intent.get_move().y < 0.0
+	return _intent.is_sprinting() and _intent.get_move().y < 0.0 and not is_aiming()
 
 
 func _apply_look(delta: float) -> void:
@@ -280,6 +289,9 @@ func _apply_look(delta: float) -> void:
 	stick *= pow(stick.length(), data.stick_curve - 1.0)
 	look.x += stick.x * deg_to_rad(data.stick_yaw_speed) * delta
 	look.y += stick.y * deg_to_rad(data.stick_pitch_speed) * delta
+	# Zoomed in, the same hand movement covers the same distance on screen.
+	if is_aiming():
+		look *= _weapon.get_stats().aim_fov / data.base_fov
 	if look.is_zero_approx():
 		return
 	rotate_y(-look.x)
@@ -313,7 +325,9 @@ func _update_shake(delta: float) -> void:
 
 func _update_fov(delta: float) -> void:
 	var target_fov: float = data.base_fov
-	if is_dashing():
+	if is_aiming():
+		target_fov = _weapon.get_stats().aim_fov
+	elif is_dashing():
 		target_fov += data.dash_fov_bonus
 	elif _is_sprinting():
 		target_fov += data.sprint_fov_bonus

@@ -3,7 +3,7 @@ extends Area3D
 ## Something in the base to walk up to. The base decides what it does: most open a menu,
 ## the door leads to the fight.
 
-enum Kind { LOADOUT, SHOP, TERMINAL, DOOR }
+enum Kind { LOADOUT, SHOP, TERMINAL, DOOR, DEBUG }
 
 @export var kind: Kind = Kind.LOADOUT
 @export var title: String = "KIOSK"

@@ -133,6 +133,11 @@ func is_sprinting() -> bool:
 	return is_active() and Input.is_action_pressed(&"sprint")
 
 
+## Held, not pressed: the sights are up for as long as this is true.
+func is_aiming() -> bool:
+	return is_active() and Input.is_action_pressed(&"aim")
+
+
 func _get_menu_held() -> Vector2i:
 	var held: Vector2i = Vector2i.ZERO
 	if Input.is_action_pressed(&"move_forward") or Input.is_action_pressed(&"ui_up"):
