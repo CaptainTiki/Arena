@@ -10,6 +10,8 @@ const OWNED: String = "owned"
 const LOADOUT: String = "loadout"
 const LADDER: String = "ladder"
 const REQUEST: String = "request"
+const MAIL: String = "mail"
+const OFFERED: String = "offered"
 
 var _path: String
 var _config: ConfigFile = ConfigFile.new()
@@ -104,6 +106,32 @@ func get_request_sponsor() -> String:
 func set_request(contract_name: String, sponsor_name: String) -> void:
 	_config.set_value(REQUEST, "contract", contract_name)
 	_config.set_value(REQUEST, "sponsor", sponsor_name)
+
+
+## Ids of every mail that has arrived, oldest first.
+func get_mail_delivered() -> PackedStringArray:
+	return PackedStringArray(_config.get_value(MAIL, "delivered", PackedStringArray()))
+
+
+func set_mail_delivered(ids: PackedStringArray) -> void:
+	_config.set_value(MAIL, "delivered", ids)
+
+
+func get_mail_read() -> PackedStringArray:
+	return PackedStringArray(_config.get_value(MAIL, "read", PackedStringArray()))
+
+
+func set_mail_read(ids: PackedStringArray) -> void:
+	_config.set_value(MAIL, "read", ids)
+
+
+## True once a sponsor's offer has put the item in the shop.
+func is_offered(id: StringName) -> bool:
+	return bool(_config.get_value(OFFERED, String(id), false))
+
+
+func set_offered(id: StringName) -> void:
+	_config.set_value(OFFERED, String(id), true)
 
 
 func save() -> void:

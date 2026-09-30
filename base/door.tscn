@@ -1,0 +1,47 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://base/kiosk.gd" id="1_kiosk"]
+[ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_reach"]
+height = 3.0
+radius = 2.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_top"]
+resource_local_to_scene = true
+shading_mode = 0
+albedo_color = Color(0.8, 0.8, 0.8, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_top"]
+size = Vector3(2.2, 3, 0.1)
+
+[node name="Door" type="Area3D"]
+collision_layer = 0
+collision_mask = 2
+script = ExtResource("1_kiosk")
+kind = 3
+title = "TO THE ARENA"
+
+[node name="Reach" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("CylinderShape3D_reach")
+
+[node name="Frame" parent="." instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0.15)
+size = Vector3(2.8, 3.3, 0.3)
+color = Color(0.15, 0.15, 0.17, 1)
+
+[node name="Top" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -0.05)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_top")
+material_override = SubResource("StandardMaterial3D_top")
+
+[node name="Label" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.6, -0.2)
+pixel_size = 0.01
+billboard = 2
+outline_modulate = Color(0, 0, 0, 1)
+text = "TO THE ARENA"
+font_size = 48
+outline_size = 12

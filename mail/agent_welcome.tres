@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"agent_welcome"
+subject = "How this works"
+body = "You book a fight with me, here. Read the card, take the contract, then get yourself ready: the shop sells, the locker is where you choose what to carry.
+
+When you are set, the door on the far wall takes you in. It stays shut until you have a contract.
+
+The sponsors watch every fight. Impress one and they will write to you. Check your mail."
+trigger = 0
+amount = 0

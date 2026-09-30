@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://sponsor/warden.tres" id="e_sender"]
+[ext_resource type="Resource" path="res://item/shotgun.tres" id="e_item"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"warden_shotgun"
+sender = ExtResource("e_sender")
+subject = "Saw you hold that ground"
+body = "Saw your last run. You stood where I told you to stand and nothing moved you off it. Killing it out there, ha.
+
+Maybe you would like something with more to say. Take this to the shop and tell them I sent you."
+trigger = 1
+amount = 35
+unlocks = ExtResource("e_item")

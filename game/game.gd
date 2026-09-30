@@ -31,11 +31,11 @@ func _enter_base() -> void:
 	_base = base_scene.instantiate() as Base
 	_base.catalog = catalog
 	_base.profile_path = profile_path
-	_base.contract_booked.connect(_on_contract_booked)
+	_base.arena_entered.connect(_on_arena_entered)
 	add_child(_base)
 
 
-func _on_contract_booked(contract: ContractData) -> void:
+func _on_arena_entered(contract: ContractData) -> void:
 	_base.queue_free()
 	_base = null
 	_arena = arena_scene.instantiate() as Arena
@@ -43,5 +43,5 @@ func _on_contract_booked(contract: ContractData) -> void:
 	_arena.profile_path = profile_path
 	_arena.contract = contract
 	_arena.finished.connect(_enter_base)
-	# Deferred: the booking arrives from inside the base's own frame.
+	# Deferred: the signal arrives from inside the base's own frame.
 	add_child.call_deferred(_arena)

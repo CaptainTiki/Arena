@@ -3,7 +3,8 @@ extends StaticBody3D
 ## Vending machine that stocks either ammo or health, rolled afresh at every restock.
 ## The light says which: blue for ammo, red for health. Steady means stocked, flashing means
 ## arriving soon, and no light means there is nothing here and nothing on the way.
-## Walk up to a stocked one and pay for what it holds. The owner takes the money.
+## Walk up to a stocked one and pay for what it holds. The price is shown above it in yellow, and
+## falls the longer the shelf sits untouched. The owner takes the money.
 
 enum Stock { AMMO, HEALTH }
 
@@ -16,10 +17,13 @@ var _stocked: bool = false
 var _restock_left: float = 0.0
 ## What it holds, or what is on the way while it is empty.
 var _stock: Stock = Stock.AMMO
+## Seconds the shelf has sat stocked.
+var _stocked_for: float = 0.0
 
 @onready var _pickup_area: Area3D = $PickupArea
 @onready var _light: MeshInstance3D = $Light
 @onready var _pickup_mesh: MeshInstance3D = $Pickup
+@onready var _price: Label3D = $Price
 @onready var _material: StandardMaterial3D = _light.material_override as StandardMaterial3D
 @onready var _pickup_material: StandardMaterial3D = _pickup_mesh.material_override as StandardMaterial3D
 
@@ -47,12 +51,11 @@ func get_stock_name() -> String:
 	return "HEALTH +%d" % roundi(data.health) if _stock == Stock.HEALTH else "AMMO +%d" % data.ammo
 
 
+## Full price when the shelf has just been filled, falling while it sits untouched.
 func get_cash_price() -> int:
-	return data.health_cash if _stock == Stock.HEALTH else data.ammo_cash
-
-
-func get_favour_price() -> int:
-	return data.health_favour if _stock == Stock.HEALTH else data.ammo_favour
+	var full: float = float(data.health_cash if _stock == Stock.HEALTH else data.ammo_cash)
+	var waited: float = clampf(_stocked_for / maxf(data.discount_time, 0.01), 0.0, 1.0)
+	return roundi(lerpf(full, full * data.lowest_price_scale, waited))
 
 
 ## True while the player stands close enough to buy.
@@ -66,13 +69,16 @@ func is_player_near() -> bool:
 ## Empties the shelf and starts the restock. Call once it has been paid for.
 func take() -> void:
 	_stocked = false
+	_stocked_for = 0.0
 	_restock_left = data.restock_time
 	_roll_stock()
 	_refresh()
 
 
 func _physics_process(delta: float) -> void:
-	if not _stocked:
+	if _stocked:
+		_stocked_for += delta
+	else:
 		_restock_left -= delta
 		if _restock_left <= 0.0:
 			_stocked = true
@@ -85,6 +91,8 @@ func _roll_stock() -> void:
 
 func _refresh() -> void:
 	_pickup_mesh.visible = _stocked
+	_price.visible = _stocked
+	_price.text = "$%d" % get_cash_price()
 	_pickup_material.albedo_color = get_color()
 	var arriving: bool = not _stocked and _restock_left <= data.warning_time
 	_light.visible = _stocked or arriving

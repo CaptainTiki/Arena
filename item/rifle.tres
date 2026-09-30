@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
 [ext_resource type="Resource" path="res://weapon/rifle.tres" id="e0"]
-[ext_resource type="Resource" path="res://sponsor/marksman.tres" id="e1"]
 
 [resource]
 script = ExtResource("1_script")
@@ -10,6 +9,5 @@ id = &"rifle"
 display_name = "RIFLE"
 description = "Five rounds, slow, and it reaches right across the arena. Weak points from anywhere."
 category = 0
-price_favour = 90
-sponsor = ExtResource("e1")
+price_cash = 600
 weapon = ExtResource("e0")

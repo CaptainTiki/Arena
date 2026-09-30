@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://sponsor/purist.tres" id="e_sender"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"purist_gift"
+sender = ExtResource("e_sender")
+subject = "A small token"
+body = "You were not touched for a long while out there. I noticed. Few do it, and fewer do it twice.
+
+I have nothing to sell you. I have sent money instead."
+trigger = 1
+amount = 100
+gift_cash = 150

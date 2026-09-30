@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://sponsor/butcher.tres" id="e_sender"]
+[ext_resource type="Resource" path="res://item/magnum.tres" id="e_item"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"butcher_magnum"
+sender = ExtResource("e_sender")
+subject = "MORE"
+body = "That is what I pay to watch. One after another after another.
+
+Shop has a .357 put by for you. Six rounds. Make them a row."
+trigger = 1
+amount = 160
+unlocks = ExtResource("e_item")

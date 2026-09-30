@@ -8,6 +8,10 @@ extends Resource
 @export var sponsors: Array[SponsorData] = []
 ## What a new profile has in its wallet.
 @export var starting_cash: int = 100
+## Every message that can arrive at the terminal.
+@export var mail: Array[MailData] = []
+## Favour lost with a sponsor when a contract they asked for is lost.
+@export var request_loss_favour: int = 15
 
 
 func find_item(id: StringName) -> ItemData:
@@ -32,9 +36,16 @@ func get_items_in(category: ItemData.Category) -> Array[ItemData]:
 	return found
 
 
-func get_items_sold_by(sponsor: SponsorData) -> Array[ItemData]:
-	var found: Array[ItemData] = []
-	for item: ItemData in items:
-		if item.sponsor == sponsor and item.price_favour > 0:
-			found.append(item)
-	return found
+func find_mail(id: StringName) -> MailData:
+	for message: MailData in mail:
+		if message.id == id:
+			return message
+	return null
+
+
+## The mail that puts `item` in the shop, or null when it is on sale from the start.
+func find_offer(item: ItemData) -> MailData:
+	for message: MailData in mail:
+		if message.unlocks == item:
+			return message
+	return null

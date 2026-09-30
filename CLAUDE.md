@@ -18,7 +18,7 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 * `class_name` on every script, explicit static typing everywhere.
 * Everything tunable lives in a Resource (`.tres`). Tuning should not need a script change.
 * Ownership spine, no autoload event bus. `Game` owns `Base` and `Arena`, one at a time, and swaps them. `Arena` owns the spawner, sponsors, pods, player and HUD. Children signal up; the owner routes.
-* Money, favour, what is owned and what is carried all go through `Locker`, which saves on every change.
+* Money, favour, mail, what is owned and what is carried all go through `Locker`, which saves on every change.
 * All damage goes through `take_hit(hit: HitInfo)`.
 * Only `PlayerIntent` reads input. Everything else asks it. Keyboard, mouse and controller all arrive as the same intents; buttons come as events, sticks and the trigger are asked about each frame.
 * Greybox visuals: boxes, capsules, flat colours. Sound is allowed; tones are generated from `ToneData`, no audio files.
@@ -29,7 +29,8 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 | Folder | Holds |
 |-|-|
 | `game/` | `Game` (the spine): swaps the base and the fight |
-| `base/` | `Base` (the room between fights), `Kiosk`, `KioskPanel` (the menu), `MenuRow`, `MenuEntry` |
+| `base/` | `Base` (the room between fights), `Kiosk` (locker, shop, terminal, and the door to the arena), `KioskPanel` (the menu), `MenuRow`, `MenuEntry` |
+| `mail/` | `MailData` and the messages sponsors and the agent send |
 | `arena/` | `Arena` (one fight), `Level`, blocks, hold zones, stations (vending machines), spawn booths |
 | `player/`, `weapon/` | Player, intent, pistol, shotgun, rifle, .357 (one `Weapon` script, `WeaponData` sets pellets and spread) |
 | `item/` | `ItemData` and everything that can be owned: weapons, vests, the stim, mods |
@@ -69,13 +70,13 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 ## Where things stand
 
-As of the end of 2026-09-29, on the desktop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again. Numbers get tuned once the arc has been played.
+As of 2026-09-30, on the laptop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again. Numbers get tuned once the arc has been played.
 
-Every system in the slice doc is built. Played so far: perception AI (liked a lot), and one full loop on The Open Gate with the pistol (won). **Built and committed but not yet played:** the kiosk menus, the shotgun moving to the Warden, and controller support.
+Every system in the slice doc is built. Played so far: perception AI (liked a lot), the kiosk menus (liked), and two wins with the shotgun bought in between. **Built but not yet played:** the door, shop, mail and cash-only stations (2026-09-30), and controller support. Sponsors, pods and rewards are due a full overhaul (names, personalities, triggers), so their numbers are being ignored on purpose until then.
 
-The loop as built: start in the base with a pistol and $100. Book a contract at the agent's terminal, fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. The Warden sells the shotgun, the Marksman the rifle, the Butcher the .357, all for favour. Cash buys vests, stims, a pistol mod, and ammo or health at stations mid-fight.
+The loop as built: start in the base with a pistol and $100. Read the mail and book a contract at the agent's terminal, shop, set the loadout at the locker, then go through the door, which only opens once a contract is booked. Fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. Favour is standing and is never spent: at 35 the Warden mails an offer and the shotgun appears in the shop, the Marksman's rifle at 90, the Butcher's .357 at 160. Cash buys everything: those weapons, vests, stims, a pistol mod, and ammo or health at stations mid-fight, where the price is shown in yellow and falls to half while the shelf sits untouched. Losing a contract a sponsor asked for costs favour with them.
 
-Keys: `E` interact and pay cash, `T` pay favour, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
+Keys: `E` interact and pay, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
 
 Every number in the economy is a placeholder. Nothing has been balanced; the twenty-minute arc has not been played end to end.
 

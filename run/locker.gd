@@ -23,7 +23,7 @@ func get_favour(sponsor: SponsorData) -> int:
 	return profile.get_favour(sponsor)
 
 
-## "$300   MARKSMAN 12   BUTCHER 40 ..."
+## Cash, then where the player stands with each sponsor: "$300   MARKSMAN 12   BUTCHER 40 ..."
 func get_wallet_text() -> String:
 	var parts: PackedStringArray = ["$%d" % get_cash()]
 	for sponsor: SponsorData in catalog.sponsors:
@@ -39,16 +39,19 @@ func owns(item: ItemData) -> bool:
 	return count_owned(item) > 0
 
 
+## False while `item` is waiting on a sponsor's offer to put it in the shop.
+func is_on_sale(item: ItemData) -> bool:
+	return catalog.find_offer(item) == null or profile.is_offered(item.id)
+
+
 ## Why `item` can't be bought, worded for the player. Empty when it can.
 func get_refusal(item: ItemData) -> String:
+	if not is_on_sale(item):
+		return "not on offer"
 	if count_owned(item) >= item.stack_limit:
 		return "already owned" if item.stack_limit == 1 else "carrying all you can"
 	if get_cash() < item.price_cash:
 		return "need $%d more" % (item.price_cash - get_cash())
-	if item.price_favour > 0 and item.sponsor != null:
-		var short: int = item.price_favour - get_favour(item.sponsor)
-		if short > 0:
-			return "need %d more favour with %s" % [short, item.sponsor.display_name]
 	return ""
 
 
@@ -56,8 +59,6 @@ func buy(item: ItemData) -> bool:
 	if not get_refusal(item).is_empty():
 		return false
 	profile.set_cash(get_cash() - item.price_cash)
-	if item.price_favour > 0 and item.sponsor != null:
-		profile.set_favour(item.sponsor, get_favour(item.sponsor) - item.price_favour)
 	profile.set_owned(item.id, count_owned(item) + 1)
 	# A first second weapon goes straight into the empty slot.
 	if item.category == ItemData.Category.WEAPON and get_weapon_slot(item) < 0:
@@ -69,29 +70,40 @@ func buy(item: ItemData) -> bool:
 	return true
 
 
-## Pays `cash`, or when there isn't enough, `favour` with whichever sponsor has the most to spare.
-## Returns what was charged, worded for the player, or empty when neither could be paid.
-func pay(cash: int, favour: int, with_favour: bool) -> String:
-	if not with_favour:
-		if get_cash() < cash:
-			return ""
-		profile.set_cash(get_cash() - cash)
-		profile.save()
-		return "$%d" % cash
-	var richest: SponsorData = get_richest_sponsor()
-	if richest == null or get_favour(richest) < favour:
-		return ""
-	profile.set_favour(richest, get_favour(richest) - favour)
+## Takes `cash` from the wallet. False, and nothing taken, when there isn't enough.
+func pay(cash: int) -> bool:
+	if get_cash() < cash:
+		return false
+	profile.set_cash(get_cash() - cash)
 	profile.save()
-	return "%d favour with %s" % [favour, richest.display_name]
+	return true
 
 
-func get_richest_sponsor() -> SponsorData:
-	var richest: SponsorData = null
-	for sponsor: SponsorData in catalog.sponsors:
-		if richest == null or get_favour(sponsor) > get_favour(richest):
-			richest = sponsor
-	return richest
+## Everything that has arrived, newest first.
+func get_mail() -> Array[MailData]:
+	var arrived: Array[MailData] = []
+	for id: String in profile.get_mail_delivered():
+		var message: MailData = catalog.find_mail(StringName(id))
+		if message != null:
+			arrived.push_front(message)
+	return arrived
+
+
+func is_unread(message: MailData) -> bool:
+	return not profile.get_mail_read().has(String(message.id))
+
+
+func count_unread() -> int:
+	var count: int = 0
+	for message: MailData in get_mail():
+		if is_unread(message):
+			count += 1
+	return count
+
+
+func mark_mail_read() -> void:
+	profile.set_mail_read(profile.get_mail_delivered())
+	profile.save()
 
 
 ## The slot `item` sits in, or -1.
@@ -192,7 +204,7 @@ func rotate_request() -> void:
 
 
 ## Settles a finished fight. `scores` and `drops` are what each of `sponsors` made of it, in the same order.
-## A loss pays nothing. Returns one result per sponsor for the summary.
+## A loss pays nothing, and costs favour with a sponsor who had asked for the fight. Returns one result per sponsor for the summary.
 func settle(
 		contract: ContractData, won: bool, sponsors: Array[SponsorData], scores: Array[float],
 		drops: Array[int], request_multiplier: float) -> Array[SponsorResult]:
@@ -209,13 +221,18 @@ func settle(
 		var earned: float = result.score * sponsor.favour_per_score * contract.favour_multiplier
 		if result.requested:
 			earned *= request_multiplier
-		result.favour_after = result.favour_before + (roundi(earned) if won else 0)
+		result.favour_after = result.favour_before
+		if won:
+			result.favour_after += roundi(earned)
+		elif result.requested:
+			result.favour_after -= catalog.request_loss_favour
 		profile.set_favour(sponsor, result.favour_after)
 		results.append(result)
 	if won:
 		profile.set_cash(get_cash() + contract.cash_reward)
 		profile.set_tier_won(maxi(profile.get_tier_won(), contract.tier))
 	profile.set_fights(profile.get_fights() + 1)
+	_deliver_mail(results, asked_by, won)
 	profile.save()
 	rotate_request()
 	return results
@@ -237,7 +254,45 @@ func _give_starters() -> void:
 				and profile.get_weapon_slot(0).is_empty():
 			profile.set_weapon_slot(0, item.id)
 			changed = true
+	if _deliver_mail([], null, false):
+		changed = true
 	if profile.get_request_contract().is_empty():
 		rotate_request()
 	elif changed:
 		profile.save()
+
+
+## Delivers every mail whose trigger has come true and has not arrived before. `results`, `asked_by`
+## and `won` describe the fight just settled; between fights they are empty. True when anything arrived.
+func _deliver_mail(results: Array[SponsorResult], asked_by: SponsorData, won: bool) -> bool:
+	var delivered: PackedStringArray = profile.get_mail_delivered()
+	var arrived: bool = false
+	for message: MailData in catalog.mail:
+		if delivered.has(String(message.id)) or not _is_due(message, results, asked_by, won):
+			continue
+		delivered.append(String(message.id))
+		if message.unlocks != null:
+			profile.set_offered(message.unlocks.id)
+		profile.set_cash(get_cash() + message.gift_cash)
+		arrived = true
+	profile.set_mail_delivered(delivered)
+	return arrived
+
+
+func _is_due(message: MailData, results: Array[SponsorResult], asked_by: SponsorData, won: bool) -> bool:
+	match message.trigger:
+		MailData.Trigger.ALWAYS:
+			return true
+		MailData.Trigger.FAVOUR_REACHED:
+			return message.sender != null and get_favour(message.sender) >= message.amount
+		MailData.Trigger.FAVOUR_LOST:
+			for result: SponsorResult in results:
+				if result.sponsor == message.sender \
+						and result.favour_before - result.favour_after >= message.amount:
+					return true
+			return false
+		MailData.Trigger.REQUEST_WON:
+			return won and asked_by != null and asked_by == message.sender
+		MailData.Trigger.RIVAL_REQUEST_WON:
+			return won and asked_by != null and asked_by != message.sender
+	return false

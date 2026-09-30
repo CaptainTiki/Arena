@@ -528,3 +528,85 @@ Built blind: no controller was plugged in, and nothing about how it feels is kno
 * **Prompts still name keys.** The HUD and the menus say `[E]`, `[T]`, `[F]` and `W / S` whatever is in the hand.
 * **To watch:** weak points are small, and the pistol is built around hitting them. With a stick and no aim assist that may simply be too hard; if so the choices are aim assist, bigger weak points on a controller, or accepting that the controller favours the shotgun.
 * Tested headless with made-up controller events: left stick walks, right stick turns and looks, a light squeeze does not fire, a pull fires once, the bumpers dash and swap, d-pad picks a slot, X reloads. The whole loop still passes on the keyboard. Not tested: a real controller, stick feel, dead zones, or menus driven by a stick.
+
+## Menus and shotgun purchase, playtest (2026-09-30, First Blood then The Open Gate, laptop)
+
+* **Menus:** liked.
+* **Booking should not start the fight.** The tester wants to read the contracts, pick one, then shop and set the loadout, then go. A door on the far side of the base starts the fight, and only works with a contract booked.
+* **The sponsor board feels off.** Wanted instead: a shop where things are bought, and mail. A sponsor writes ("saw your last run... take this to the shop and tell them I sent you") and the weapon then shows up in the shop.
+* **Log:**
+
+| | First Blood | The Open Gate |
+|-|-|-|
+| Result | won at 5:44 | won at 1:22 |
+| Kills | 26 | 14 |
+| Shots | 95, pistol only | 28, 6 of them shotgun |
+| Hits taken | 4 | 1 |
+| Spent at stations | $60 | $0 |
+| Favour: Purist (asked for both) | 237 | 56 |
+| Favour: Warden | 186 | 0 |
+| Favour: Marksman | 52 | 21 |
+| Favour: Butcher | 16 | 6 |
+
+* **The Warden paid 186 for one fight** because zones were held for long stretches (33 in the earlier win). The 35-favour shotgun was bought after one fight.
+* **10 pods dropped in First Blood.** Still frequent in a long fight.
+* **The shotgun was fired six times,** so still no read on the bracket.
+
+## Direction decisions (2026-09-30)
+
+* **Favour is standing, not money.** It is never spent. Reaching a level with a sponsor brings a mail, and the mail puts their weapon in the shop, where it costs cash.
+* **Cash is the only thing spent,** in the shop and at stations. One button at a station, no thinking about whose favour.
+* **Station prices** are shown on the machine in bright yellow, readable from a distance, and tick down while the shelf sits untouched, to half at the lowest. Using everything costs a lot; waiting costs less.
+* **Favour can go down** when a sponsor is angered.
+* **Mail is where the story goes later.** Triggers the tester listed: a favour milestone reached for the first time; favour up by some amount; favour down by some amount; a negative threshold; at random over time; and another sponsor getting jealous when you finish a job someone asked for. Only a few placeholder mails are needed now.
+* **Sponsors, pods and rewards are due a full overhaul:** new names, personalities, what triggers a pod and what is in it. Until then their numbers are ignored on purpose. The prototype only has to work well enough to keep playing and designing.
+
+## Door, shop, mail, cash-only stations (2026-09-30, not yet playtested)
+
+**The base** now has three kiosks along one wall and a door on the opposite wall, behind where the player starts.
+
+| Thing | Does |
+|-|-|
+| Locker | What is carried: two weapon slots, the vest (`A` `D` or choose to change), and what is in the pocket. Nothing is sold here |
+| Shop | Everything that is bought, for cash: sponsor weapons once offered, vests, stims, the pistol mod |
+| Agent's terminal | Mail, and the contract board. Taking a contract books it and stays in the menu |
+| Door | Red and locked until a contract is booked, then green. `E` starts the fight |
+
+* The booked contract is remembered for the visit, not saved. It can be changed by taking another.
+* The sponsor board is gone. Standing with each sponsor is still in the wallet line at the top of every menu.
+
+**Favour and the shop**
+
+| Weapon | Offered at | Costs |
+|-|-|-|
+| Shotgun | 35 with the Warden | $250 |
+| Rifle | 90 with the Marksman | $600 |
+| .357 | 160 with the Butcher | $900 |
+
+* A sponsor weapon is not listed in the shop at all until its mail has arrived.
+* Buying does not touch favour. `T` at a station no longer does anything.
+* **Losing a contract a sponsor asked for costs 15 favour with them** (`request_loss_favour` in the catalog). This is the only way favour falls so far, and favour can go below zero. Made without asking.
+
+**Mail.** A `MailData` resource each, listed in the catalog. Each arrives once. Mail is checked when a fight is settled and when the base loads, so an old save gets whatever it has already earned.
+
+| Trigger | Built | Placeholder mail using it |
+|-|-|-|
+| Always | yes | Agent: how the base works |
+| Favour reached | yes | Warden, Marksman, Butcher offers; the Purist sends $150 at 100 |
+| Favour lost in one fight | yes | Purist: disappointed |
+| Won this sponsor's request | yes | none written |
+| Won another sponsor's request | yes | Butcher: jealous |
+| Favour up by an amount, negative threshold, random over time | no | |
+
+* A mail can put an item in the shop, add cash to the wallet, or just talk.
+* The terminal's prompt says how many are new. New mail is yellow in the list; leaving the list marks it all read. The newest 13 are listed.
+
+**Stations**
+
+* Cash only. Ammo $20 and health $40 when freshly stocked, falling in a straight line to half over 90 seconds untouched. A restock is back at full price.
+* The price stands above the machine in yellow while it is stocked.
+* Every station at the start of a fight is at full price and starts ticking down together.
+
+**Log:** `contract_booked` no longer lists the loadout; `arena_enter` does, at the door. `base_enter` lists unread mail. New: `mail_read`. `purchase` has no favour field.
+
+**Tested headless:** mail arriving on a favour level, on a lost request, on a rival's request and with a gift; the shop refusing a weapon not yet offered and selling it after; favour untouched by buying; mail surviving a reload and not arriving twice; the locked door doing nothing; booking not starting the fight; the door starting the booked fight; a station's price at $20, at $15 after 45 s, stopping at half, back to full after a restock, and the purchase charging the lowered price. Not tested: anything seen, including where the door sits, whether the yellow price reads from a distance, and how the mail reads in the panel.

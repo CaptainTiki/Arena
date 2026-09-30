@@ -2,9 +2,10 @@ class_name Base
 extends Node3D
 ## The room between fights. Walk up to a kiosk, press the key, and a menu comes up:
 ## move through it with the movement keys or the mouse, choose with the key or a click.
-## Everything bought, worn or booked here goes through the locker.
+## A contract is booked at the terminal; the door starts the fight once one is booked.
+## Everything bought or worn here goes through the locker.
 
-signal contract_booked(contract: ContractData)
+signal arena_entered(contract: ContractData)
 
 @export var catalog: Catalog
 ## Where favour, cash and everything owned are kept.
@@ -14,6 +15,13 @@ signal contract_booked(contract: ContractData)
 @export var heading_color: Color = Color(1.0, 1.0, 1.0, 0.6)
 @export var owned_color: Color = Color(0.6, 1.0, 0.6)
 @export var request_color: Color = Color(1.0, 0.85, 0.2)
+@export var unread_color: Color = Color(1.0, 0.85, 0.2)
+## The newest this many are listed at the terminal.
+@export var max_mail_shown: int = 13
+
+@export_group("Door")
+@export var door_shut_color: Color = Color(0.8, 0.15, 0.15)
+@export var door_open_color: Color = Color(0.3, 1.0, 0.4)
 
 var _locker: Locker
 var _kiosks: Array[Kiosk] = []
@@ -21,6 +29,10 @@ var _kiosks: Array[Kiosk] = []
 var _open: Kiosk
 ## The contract whose card is up on the terminal, or null.
 var _card: ContractData
+## True while the terminal is showing the mail.
+var _reading_mail: bool = false
+## The contract taken at the terminal, or null. The door leads to it.
+var _booked: ContractData
 ## The last thing that happened at this kiosk, shown at the foot of the menu.
 var _message: String = ""
 
@@ -41,10 +53,13 @@ func _ready() -> void:
 	for child: Node in _kiosks_root.get_children():
 		if child is Kiosk:
 			_kiosks.append(child as Kiosk)
+	_refresh_door()
 	_panel.entry_clicked.connect(_choose)
 	_prompt.text = ""
 	_log.open_session()
-	_log.log_world("base_enter", _describe_wallet())
+	var entry: Dictionary = _describe_wallet()
+	entry["unread_mail"] = _get_unread_ids()
+	_log.log_world("base_enter", entry)
 
 
 func get_locker() -> Locker:
@@ -59,9 +74,26 @@ func _process(_delta: float) -> void:
 	var interact: bool = _intent.consume_interact()
 	_intent.consume_cancel()
 	var near: Kiosk = _get_near_kiosk()
-	_prompt.text = "" if near == null else "[E] %s" % near.title
-	if near != null and interact:
+	_prompt.text = "" if near == null else _get_prompt(near)
+	if near == null or not interact:
+		return
+	if near.kind != Kiosk.Kind.DOOR:
 		_open_kiosk(near)
+	elif _booked != null:
+		_enter_arena()
+
+
+func _get_prompt(kiosk: Kiosk) -> String:
+	match kiosk.kind:
+		Kiosk.Kind.DOOR:
+			if _booked == null:
+				return "Locked. Book a contract at the agent's terminal first."
+			return "[E] Enter the arena:  %s" % _booked.display_name
+		Kiosk.Kind.TERMINAL:
+			var unread: int = _locker.count_unread()
+			if unread > 0:
+				return "[E] %s      %d new mail" % [kiosk.title, unread]
+	return "[E] %s" % kiosk.title
 
 
 func _tick_menu() -> void:
@@ -83,10 +115,13 @@ func _tick_menu() -> void:
 		_choose(picked)
 
 
-## Out of a contract card to the board, or out of the menu altogether.
+## Out of a contract card or the mail to the terminal's first page, or out of the menu altogether.
 func _step_back() -> void:
 	if _card != null:
 		_show_card(null)
+		_build()
+	elif _reading_mail:
+		_show_mail(false)
 		_build()
 	else:
 		_close()
@@ -117,6 +152,7 @@ func _get_distance(kiosk: Kiosk) -> float:
 func _open_kiosk(kiosk: Kiosk) -> void:
 	_open = kiosk
 	_card = null
+	_reading_mail = false
 	_message = ""
 	_prompt.text = ""
 	# The player stands still while the menu is up; the intent keeps listening.
@@ -127,6 +163,8 @@ func _open_kiosk(kiosk: Kiosk) -> void:
 
 
 func _close() -> void:
+	if _reading_mail:
+		_show_mail(false)
 	_open = null
 	_card = null
 	_panel.close()
@@ -139,18 +177,19 @@ func _build() -> void:
 	var entries: Array[MenuEntry] = []
 	var title: String = _open.title
 	match _open.kind:
-		Kiosk.Kind.WEAPON_RACK:
-			_list_weapon_rack(entries)
-		Kiosk.Kind.WARDROBE:
-			_list_wardrobe(entries)
+		Kiosk.Kind.LOADOUT:
+			_list_loadout(entries)
+		Kiosk.Kind.SHOP:
+			_list_shop(entries)
 		Kiosk.Kind.TERMINAL:
-			if _card == null:
-				_list_contracts(entries)
-			else:
+			if _card != null:
 				title = _card.display_name
 				_list_card(entries)
-		Kiosk.Kind.SPONSOR_BOARD:
-			_list_sponsor_board(entries)
+			elif _reading_mail:
+				title = "MAIL"
+				_list_mail(entries)
+			else:
+				_list_terminal(entries)
 	entries.append(MenuEntry.heading(""))
 	entries.append(MenuEntry.option("Step away", "", "Back to the room.", _close))
 	_panel.show_menu(title, _locker.get_wallet_text(), entries, _message)
@@ -174,49 +213,65 @@ func _make_owned(item: ItemData, state: String) -> MenuEntry:
 	return entry
 
 
-func _list_weapon_rack(entries: Array[MenuEntry]) -> void:
+func _list_loadout(entries: Array[MenuEntry]) -> void:
 	entries.append(MenuEntry.heading("CARRIED INTO THE FIGHT", heading_color))
 	for slot: int in Locker.WEAPON_SLOTS:
 		var held: ItemData = _locker.get_weapon_in(slot)
 		var about: String = "Nothing in this slot." if held == null else held.description
 		about += "\n\nChoose, or press A or D, to change what this slot carries."
 		if _get_owned_weapons().size() < 2:
-			about += "\n\nYou own one weapon. The sponsors sell more, for favour, at the sponsor board."
+			about += "\n\nYou own one weapon. Sponsors who like what they see send offers by mail."
 		var entry: MenuEntry = MenuEntry.option(
 				"Slot %d" % (slot + 1), "<  %s  >" % ("empty" if held == null else held.display_name),
 				about, _cycle_weapon.bind(slot, 1))
 		entry.nudge = _nudge_weapon.bind(slot)
 		entries.append(entry)
-	entries.append(MenuEntry.heading(""))
-	entries.append(MenuEntry.heading("MODS", heading_color))
-	for item: ItemData in catalog.get_items_in(ItemData.Category.MOD):
-		entries.append(_make_owned(item, "fitted") if _locker.owns(item) else _make_sale(item))
-
-
-func _list_wardrobe(entries: Array[MenuEntry]) -> void:
 	var worn: ItemData = _locker.get_vest()
-	entries.append(MenuEntry.heading("VESTS", heading_color, "wearing: %s" % (
-			"none" if worn == null else worn.display_name)))
-	for item: ItemData in catalog.get_items_in(ItemData.Category.VEST):
-		if not _locker.owns(item):
-			entries.append(_make_sale(item))
-		elif item == worn:
-			var entry: MenuEntry = MenuEntry.option(
-					"Take off  %s" % item.display_name, "worn", item.description, _wear.bind(null))
-			entry.color = owned_color
-			entries.append(entry)
-		else:
-			entries.append(MenuEntry.option(
-					"Wear  %s" % item.display_name, "owned", item.description, _wear.bind(item)))
-	entries.append(MenuEntry.heading(""))
+	var vest_about: String = "No vest." if worn == null else worn.description
+	vest_about += "\n\nChoose, or press A or D, to change what you wear. The shop sells vests."
+	var vest: MenuEntry = MenuEntry.option(
+			"Vest", "<  %s  >" % ("none" if worn == null else worn.display_name), vest_about, _cycle_vest.bind(1))
+	vest.nudge = _cycle_vest
+	entries.append(vest)
 	var pocket: ItemData = _locker.get_pocket()
-	entries.append(MenuEntry.heading("POCKET", heading_color, "holding: %s" % (
-			"nothing" if pocket == null else pocket.display_name)))
-	for item: ItemData in catalog.get_items_in(ItemData.Category.CONSUMABLE):
-		entries.append(_make_sale(item))
+	entries.append(MenuEntry.option(
+			"Pocket", "empty" if pocket == null else "%s  x%d" % [pocket.display_name, _locker.count_owned(pocket)],
+			"One goes into each fight. The shop sells them." if pocket == null else pocket.description,
+			Callable()))
+	for item: ItemData in catalog.get_items_in(ItemData.Category.MOD):
+		if _locker.owns(item):
+			entries.append(_make_owned(item, "fitted"))
 
 
-func _list_contracts(entries: Array[MenuEntry]) -> void:
+func _list_shop(entries: Array[MenuEntry]) -> void:
+	var offered: Array[MenuEntry] = []
+	for item: ItemData in catalog.get_items_in(ItemData.Category.WEAPON):
+		if item.starter or not _locker.is_on_sale(item):
+			continue
+		offered.append(_make_owned(item, "owned") if _locker.owns(item) else _make_sale(item))
+	entries.append(MenuEntry.heading(
+			"WEAPONS", heading_color, "" if not offered.is_empty() else "none on offer yet"))
+	entries.append_array(offered)
+	entries.append(MenuEntry.heading(""))
+	entries.append(MenuEntry.heading("GEAR", heading_color))
+	for category: ItemData.Category in [
+			ItemData.Category.VEST, ItemData.Category.CONSUMABLE, ItemData.Category.MOD]:
+		for item: ItemData in catalog.get_items_in(category):
+			if item.stack_limit == 1 and _locker.owns(item):
+				entries.append(_make_owned(item, "owned"))
+			else:
+				entries.append(_make_sale(item))
+
+
+func _list_terminal(entries: Array[MenuEntry]) -> void:
+	var unread: int = _locker.count_unread()
+	var mail: MenuEntry = MenuEntry.option(
+			"Read your mail", "%d new" % unread if unread > 0 else "nothing new",
+			"Messages from your agent and from the sponsors.", _show_mail.bind(true))
+	if unread > 0:
+		mail.color = unread_color
+	entries.append(mail)
+	entries.append(MenuEntry.heading(""))
 	entries.append(MenuEntry.heading("CONTRACTS ON OFFER", heading_color))
 	for contract: ContractData in catalog.contracts:
 		var asked_by: SponsorData = _locker.get_request_for(contract)
@@ -231,30 +286,37 @@ func _list_contracts(entries: Array[MenuEntry]) -> void:
 		if asked_by != null:
 			entry.color = request_color
 			entry.note = "%s asks   %s" % [asked_by.display_name.trim_prefix("THE "), entry.note]
+		if contract == _booked:
+			entry.color = owned_color
+			entry.note = "BOOKED   %s" % entry.note
 		entries.append(entry)
 
 
 func _list_card(entries: Array[MenuEntry]) -> void:
 	var about: String = _card.get_card(_locker.get_request_for(_card))
-	var loadout: Loadout = _locker.build_loadout()
-	var carrying: PackedStringArray = []
-	for weapon: WeaponData in loadout.weapons:
-		carrying.append(weapon.display_name)
-	about += "\n\nYou are carrying: %s.\nVest: %s.   Pocket: %s." % [
-			", ".join(carrying),
-			"none" if loadout.vest == null else loadout.vest.display_name,
-			"empty" if loadout.consumable == null else loadout.consumable.display_name]
+	about += "\n\nTaking it opens the door to the arena. You can still shop and change what you carry."
 	entries.append(MenuEntry.option("Take the contract", "", about, _book.bind(_card)))
 	entries.append(MenuEntry.option("Back to the board", "", about, _show_card.bind(null)))
 
 
-func _list_sponsor_board(entries: Array[MenuEntry]) -> void:
-	for sponsor: SponsorData in catalog.sponsors:
-		entries.append(MenuEntry.heading(
-				"%s   wants %s" % [sponsor.display_name, sponsor.wants], sponsor.color,
-				"favour %d" % _locker.get_favour(sponsor)))
-		for item: ItemData in catalog.get_items_sold_by(sponsor):
-			entries.append(_make_owned(item, "owned") if _locker.owns(item) else _make_sale(item))
+func _list_mail(entries: Array[MenuEntry]) -> void:
+	var arrived: Array[MailData] = _locker.get_mail()
+	# The panel has a fixed number of rows; the oldest mail falls off the end.
+	for message: MailData in arrived.slice(0, max_mail_shown):
+		var about: String = "From: %s\n\n%s" % [message.get_sender_name(), message.body]
+		if message.unlocks != null:
+			about += "\n\nNow in the shop: %s." % message.unlocks.display_name
+		if message.gift_cash > 0:
+			about += "\n\n$%d was added to your wallet." % message.gift_cash
+		var entry: MenuEntry = MenuEntry.option(
+				message.subject, message.get_sender_name().trim_prefix("THE "), about, Callable())
+		if _locker.is_unread(message):
+			entry.color = unread_color
+			entry.note = "NEW   %s" % entry.note
+		elif message.sender != null:
+			entry.color = message.sender.color
+		entries.append(entry)
+	entries.append(MenuEntry.option("Back to the terminal", "", "", _show_mail.bind(false)))
 
 
 func _get_owned_weapons() -> Array[ItemData]:
@@ -282,6 +344,19 @@ func _cycle_weapon(slot: int, step: int) -> void:
 	_message = "Slot %d carries the %s." % [slot + 1, next.display_name]
 
 
+func _cycle_vest(step: int) -> void:
+	var choices: Array[ItemData] = [null]
+	for item: ItemData in catalog.get_items_in(ItemData.Category.VEST):
+		if _locker.owns(item):
+			choices.append(item)
+	if choices.size() < 2:
+		_message = "No vest to wear yet."
+		return
+	var next: ItemData = choices[posmod(choices.find(_locker.get_vest()) + step, choices.size())]
+	_locker.set_vest(next)
+	_message = "No vest." if next == null else "Wearing the %s." % next.display_name
+
+
 func _buy(item: ItemData) -> void:
 	if not _locker.buy(item):
 		_message = "Can't buy the %s: %s." % [item.display_name, _locker.get_refusal(item)]
@@ -290,13 +365,7 @@ func _buy(item: ItemData) -> void:
 	var entry: Dictionary = _describe_wallet()
 	entry["item"] = item.display_name
 	entry["cash"] = item.price_cash
-	entry["favour"] = item.price_favour
 	_log.log_world("purchase", entry)
-
-
-func _wear(item: ItemData) -> void:
-	_locker.set_vest(item)
-	_message = "No vest." if item == null else "Wearing the %s." % item.display_name
 
 
 func _show_card(contract: ContractData) -> void:
@@ -308,22 +377,56 @@ func _show_card(contract: ContractData) -> void:
 	_panel.reset_pick()
 
 
+## Opens or leaves the mail. Leaving marks everything there as read.
+func _show_mail(reading: bool) -> void:
+	if _reading_mail and not reading:
+		_log.log_world("mail_read", {"mail": _get_unread_ids()})
+		_locker.mark_mail_read()
+	_reading_mail = reading
+	_message = ""
+	_panel.reset_pick()
+
+
 func _book(contract: ContractData) -> void:
 	var asked_by: SponsorData = _locker.get_request_for(contract)
-	var loadout: Loadout = _locker.build_loadout()
-	var weapons: PackedStringArray = []
-	for weapon: WeaponData in loadout.weapons:
-		weapons.append(weapon.display_name)
+	_booked = contract
+	_card = null
+	_message = "Booked: %s. The door to the arena is open." % contract.display_name
+	_panel.reset_pick()
+	_refresh_door()
 	_log.log_world("contract_booked", {
 		"contract": contract.display_name,
 		"tier": contract.tier,
 		"asked_by": "" if asked_by == null else asked_by.display_name,
+	})
+
+
+func _enter_arena() -> void:
+	var loadout: Loadout = _locker.build_loadout()
+	var weapons: PackedStringArray = []
+	for weapon: WeaponData in loadout.weapons:
+		weapons.append(weapon.display_name)
+	_log.log_world("arena_enter", {
+		"contract": _booked.display_name,
 		"weapons": weapons,
 		"vest": "" if loadout.vest == null else loadout.vest.display_name,
 		"pocket": "" if loadout.consumable == null else loadout.consumable.display_name,
 	})
-	_close()
-	contract_booked.emit(contract)
+	arena_entered.emit(_booked)
+
+
+func _refresh_door() -> void:
+	for kiosk: Kiosk in _kiosks:
+		if kiosk.kind == Kiosk.Kind.DOOR:
+			kiosk.set_color(door_shut_color if _booked == null else door_open_color)
+
+
+func _get_unread_ids() -> PackedStringArray:
+	var ids: PackedStringArray = []
+	for message: MailData in _locker.get_mail():
+		if _locker.is_unread(message):
+			ids.append(String(message.id))
+	return ids
 
 
 func _describe_wallet() -> Dictionary:

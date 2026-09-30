@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://sponsor/marksman.tres" id="e_sender"]
+[ext_resource type="Resource" path="res://item/rifle.tres" id="e_item"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"marksman_rifle"
+sender = ExtResource("e_sender")
+subject = "Clean work"
+body = "I count hits, and I count where they land. Yours land where they should.
+
+There is a rifle at the shop with your name on the ticket. Do not waste it on the body."
+trigger = 1
+amount = 90
+unlocks = ExtResource("e_item")

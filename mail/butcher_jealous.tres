@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MailData" format=3]
+
+[ext_resource type="Script" path="res://mail/mail_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://sponsor/butcher.tres" id="e_sender"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"butcher_jealous"
+sender = ExtResource("e_sender")
+subject = "Working for someone else?"
+body = "So you take requests now. Just not mine.
+
+I ask for fights too. Look for my name on the board next time."
+trigger = 4
+amount = 0

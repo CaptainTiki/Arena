@@ -290,25 +290,23 @@ func _tick_zone_noise(holding: bool, delta: float) -> void:
 		_spawner.make_noise(_hold_zones[_active_zone].global_position, run.zone_noise_radius, &"zone")
 
 
-## Stations sell what they stock: one key pays cash, the other pays favour.
+## Stations sell what they stock, for cash.
 func _tick_stations() -> void:
 	_near_station = null
 	for station: AmmoStation in _level.get_ammo_stations():
 		if station.is_stocked() and station.is_player_near():
 			_near_station = station
-	var pay_cash: bool = _intent.consume_interact()
-	var pay_favour: bool = _intent.consume_interact_alt()
+	var pay: bool = _intent.consume_interact()
 	if _near_station == null:
 		_hud.set_prompt("")
 		return
-	_hud.set_prompt("%s      [E] $%d      [T] %d favour      You have %s" % [
-			_near_station.get_stock_name(), _near_station.get_cash_price(),
-			_near_station.get_favour_price(), _locker.get_wallet_text()])
-	if pay_cash or pay_favour:
-		_buy_from(_near_station, pay_favour)
+	_hud.set_prompt("%s      [E] $%d      You have $%d" % [
+			_near_station.get_stock_name(), _near_station.get_cash_price(), _locker.get_cash()])
+	if pay:
+		_buy_from(_near_station)
 
 
-func _buy_from(station: AmmoStation, with_favour: bool) -> void:
+func _buy_from(station: AmmoStation) -> void:
 	var health: bool = station.get_stock() == AmmoStation.Stock.HEALTH
 	if health and _player.get_health() >= _player.data.max_health:
 		_hud.show_pickup("NOTHING TO HEAL", station.get_color())
@@ -316,15 +314,15 @@ func _buy_from(station: AmmoStation, with_favour: bool) -> void:
 	if not health and _is_ammo_full():
 		_hud.show_pickup("POCKETS FULL", station.get_color())
 		return
-	var paid: String = _locker.pay(station.get_cash_price(), station.get_favour_price(), with_favour)
-	if paid.is_empty():
+	var price: int = station.get_cash_price()
+	if not _locker.pay(price):
 		_hud.show_pickup("CAN'T PAY", station.get_color())
 		return
-	_hud.show_pickup("%s  for %s" % [station.get_stock_name(), paid], station.get_color())
+	_hud.show_pickup("%s  for $%d" % [station.get_stock_name(), price], station.get_color())
 	_log.log_player("station", {
 		"stock": "health" if health else "ammo",
 		"amount": station.data.health if health else float(station.data.ammo),
-		"paid": paid,
+		"paid": "$%d" % price,
 	})
 	if health:
 		_player.heal(station.data.health)

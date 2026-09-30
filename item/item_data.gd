@@ -19,10 +19,6 @@ enum Effect {
 
 @export_group("Price")
 @export var price_cash: int = 0
-## Paid in favour with `sponsor`. Zero means favour does not buy it.
-@export var price_favour: int = 0
-## Who sells it, when it is sold for favour.
-@export var sponsor: SponsorData
 ## Owned by every profile from the start.
 @export var starter: bool = false
 ## How many can be owned at once. Everything but a consumable is owned once.
@@ -45,11 +41,5 @@ enum Effect {
 @export var duration: float = 0.0
 
 
-## "$400", "35 BUTCHER favour", or both.
 func get_price_text() -> String:
-	var parts: PackedStringArray = []
-	if price_cash > 0:
-		parts.append("$%d" % price_cash)
-	if price_favour > 0 and sponsor != null:
-		parts.append("%d favour with %s" % [price_favour, sponsor.display_name])
-	return "free" if parts.is_empty() else " and ".join(parts)
+	return "$%d" % price_cash if price_cash > 0 else "free"

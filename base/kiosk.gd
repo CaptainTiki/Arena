@@ -1,10 +1,11 @@
 class_name Kiosk
 extends Area3D
-## Something in the base to walk up to. The base decides what its panel says.
+## Something in the base to walk up to. The base decides what it does: most open a menu,
+## the door leads to the fight.
 
-enum Kind { WEAPON_RACK, WARDROBE, TERMINAL, SPONSOR_BOARD }
+enum Kind { LOADOUT, SHOP, TERMINAL, DOOR }
 
-@export var kind: Kind = Kind.WEAPON_RACK
+@export var kind: Kind = Kind.LOADOUT
 @export var title: String = "KIOSK"
 @export var color: Color = Color(0.8, 0.8, 0.8)
 
@@ -15,6 +16,11 @@ enum Kind { WEAPON_RACK, WARDROBE, TERMINAL, SPONSOR_BOARD }
 
 func _ready() -> void:
 	_label.text = title
+	set_color(color)
+
+
+func set_color(value: Color) -> void:
+	color = value
 	_label.modulate = color
 	_material.albedo_color = color
 
