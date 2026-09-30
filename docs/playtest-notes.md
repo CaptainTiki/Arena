@@ -392,3 +392,73 @@ Deliberately too strong. Five pellets kill a grunt at normal health; a full blas
   * Weapons are sold by sponsors: the Butcher sells the shotgun, the Marksman a rifle, the Warden the .357.
   * Two vests instead of light and heavy armour. The ammo vest starts with more ammo and has bigger pockets. The armour vest cuts damage taken, but starts with less ammo and carries less.
   * The rest of the slice is built as one push.
+
+## Economy, loadout, ladder, booths and base (2026-09-29, not yet playtested)
+
+The rest of the slice, built as one push.
+
+**The base.** One room, four kiosks. Walk up, `E` opens a text panel, number keys choose, `E` or `Esc` steps away. The game now starts here; `Game` owns the base and the fight and swaps them.
+
+| Kiosk | Does |
+|-|-|
+| Weapon rack | Puts owned weapons in the two slots. Sells the pistol mod |
+| Wardrobe | Sells and wears vests. Sells stims |
+| Agent's terminal | The contract board, then the briefing card, then the fight |
+| Sponsor board | What each sponsor wants, favour held, and what they sell |
+
+**What can be bought.** Placeholder prices.
+
+| Item | Costs | Does |
+|-|-|-|
+| Shotgun | 35 favour, Butcher | As bracketed: 16 pellets at 18, scarce shells |
+| Rifle | 90 favour, Marksman | 35 damage, 4x on a weak point, 5 rounds, slow, 300 m |
+| .357 | 160 favour, Warden | 60 damage, 6x on a weak point (360), 6 rounds |
+| Ammo vest | $400 | Start with 1.5x ammo, carry 1.5x |
+| Armour vest | $600 | Hits do 35% less. Start with 0.6x ammo, carry 0.6x |
+| Health stim | $150, own up to 3 | 60 health over 3 s. One goes into each fight. `F` |
+| Extended mag | $350 | Pistol mag 12 to 16, for good |
+
+* A new profile has the pistol and $100. Saves from before this start again from nothing.
+* Weapons now have a cap on spare ammo: pistol 60, shotgun 12, rifle 25, .357 18, before the vest.
+
+**Favour.**
+
+* Paid on a win only. Per sponsor: the score they gave over the whole fight, times that sponsor's rate, times the contract's multiplier, doubled if that sponsor asked for the contract.
+* Rates: Marksman 1.5, Butcher 2.0, Purist 0.4, Warden 1.0 per point of score. Guessed from the pod counts in earlier logs to land near 15 to 25 a sponsor on an easy win.
+* One open contract at a time carries a sponsor's request. It moves after every fight, win or lose.
+* The old reputation number is gone; favour replaces it. The perk teasers went with it.
+
+**Pods are rarer.** First-drop thresholds up about 2.5 times and growing faster: Marksman 6 to 15, Butcher 4 to 10, Purist 25 to 60, Warden 15 to 30. Aimed at about one pod a sponsor in a good fight.
+
+**Stations are vending machines.** Walk up to a stocked one: `E` pays cash, `T` pays favour from whichever sponsor has the most to spare. Ammo is $20 or 2 favour, health $40 or 4. They refuse to sell health at full health or ammo with full pockets. The money is gone whether or not the fight is won.
+
+**The ladder.**
+
+| Tier | Contract | Type | Pays | Favour | Opens after |
+|-|-|-|-|-|-|
+| 1 | The Open Gate | Extermination, 14 robots, no heavies, normal damage | $200 | x1 | open |
+| 1 | First Blood | Extermination, 26 robots, 2 heavies | $300 | x1 | open |
+| 2 | The Warden's Errand | Scavenger | $500 | x1.5 | a tier 1 win |
+| 3 | The Long Night | Survival | $1200 | x2 | a tier 2 win |
+| 4 | The Main Event | Extermination, 53 robots, 9 heavies, 1.5x health and damage | $2000 | x3 | a tier 3 win |
+
+**Spawn booths,** from the playtest. The eight spawn points round the edge are now booths: a pad, four posts, and a light that comes on when something walks in. The four spawn points in the open middle are gone. In an extermination the first wave starts on the floor and the rest come through the booths on the clock, or three seconds after the floor is cleared. First Blood grew from 15 robots to 26 in four waves.
+
+**Survival ramp.** Once the floor has been full for 8 seconds with nothing killed, the ramp stops climbing, and picks up at the next kill.
+
+**Log.** New events: `base_enter`, `purchase`, `contract_booked` (with the loadout), `stim_used`. `station` says what was paid. `favor` carries the score and whether the sponsor had asked.
+
+**Choices made without asking,** any of which can be turned round:
+
+* Sponsor weapons cost favour only, no cash.
+* Favour at a station comes from the sponsor with the most, not one the player picks.
+* Only one stim goes into a fight however many are owned.
+* The arena scene run on its own carries all four weapons, so any of them can be tried without buying it.
+
+**Not as the slice doc has it:**
+
+* The .357 kills through the weak point. It does not kill a heavy from the front, because a heavy's weak point is on its back.
+* Two vests in place of light and heavy armour; nothing slows the sprint.
+* Walls of text on the panels wrap but are not laid out. Ugly on purpose, as asked.
+
+**Tested headless:** the whole loop through `Game` (buy the shotgun for favour, buy and wear a vest, buy a stim, book, fight carrying what was set, use the stim, win, get paid, land back in the base with tier 2 open); a station sale and a refusal; a loss paying nothing; the ramp stalling. Not tested: anything seen or heard, the feel of the rifle and the .357, and whether the prices make a twenty-minute arc.

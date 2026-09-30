@@ -9,6 +9,14 @@ var _reload_queued: bool = false
 var _slot_queued: int = -1
 var _cycle_queued: bool = false
 var _debug_queued: bool = false
+var _interact_queued: bool = false
+var _interact_alt_queued: bool = false
+var _use_item_queued: bool = false
+var _cancel_queued: bool = false
+var _digit_queued: int = -1
+
+## Off where Escape closes a panel instead of letting go of the mouse.
+var release_mouse_on_cancel: bool = true
 
 
 func _ready() -> void:
@@ -17,7 +25,9 @@ func _ready() -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		_cancel_queued = true
+		if release_mouse_on_cancel:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		return
 	if event.is_action_pressed(&"debug_hud"):
 		_debug_queued = true
@@ -27,6 +37,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		return
+
+	if event is InputEventKey and event.pressed and not event.echo:
+		var key: Key = (event as InputEventKey).physical_keycode
+		if key >= KEY_1 and key <= KEY_9:
+			_digit_queued = key - KEY_1
 
 	if event is InputEventMouseMotion:
 		_look_accum += (event as InputEventMouseMotion).screen_relative
@@ -44,6 +59,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_slot_queued = 2
 	elif event.is_action_pressed(&"weapon_next"):
 		_cycle_queued = true
+	elif event.is_action_pressed(&"interact"):
+		_interact_queued = true
+	elif event.is_action_pressed(&"interact_alt"):
+		_interact_alt_queued = true
+	elif event.is_action_pressed(&"use_item"):
+		_use_item_queued = true
 
 
 ## False while the mouse is released; all intents read as idle.
@@ -102,4 +123,35 @@ func consume_weapon_cycle() -> bool:
 func consume_debug_toggle() -> bool:
 	var queued: bool = _debug_queued
 	_debug_queued = false
+	return queued
+
+
+func consume_interact() -> bool:
+	var queued: bool = _interact_queued
+	_interact_queued = false
+	return queued
+
+
+func consume_interact_alt() -> bool:
+	var queued: bool = _interact_alt_queued
+	_interact_alt_queued = false
+	return queued
+
+
+func consume_use_item() -> bool:
+	var queued: bool = _use_item_queued
+	_use_item_queued = false
+	return queued
+
+
+func consume_cancel() -> bool:
+	var queued: bool = _cancel_queued
+	_cancel_queued = false
+	return queued
+
+
+## A number key from 1 to 9, counting from zero, or -1 for none. For picking from a list.
+func consume_digit() -> int:
+	var queued: int = _digit_queued
+	_digit_queued = -1
 	return queued

@@ -1,11 +1,9 @@
 class_name AmmoStation
 extends StaticBody3D
-## Fixed dispenser that stocks either ammo or health, rolled afresh at every restock.
+## Vending machine that stocks either ammo or health, rolled afresh at every restock.
 ## The light says which: blue for ammo, red for health. Steady means stocked, flashing means
 ## arriving soon, and no light means there is nothing here and nothing on the way.
-## Walk up to a stocked one to take what it holds.
-
-signal collected(station: AmmoStation)
+## Walk up to a stocked one and pay for what it holds. The owner takes the money.
 
 enum Stock { AMMO, HEALTH }
 
@@ -45,25 +43,40 @@ func get_color() -> Color:
 	return data.health_color if _stock == Stock.HEALTH else data.ammo_color
 
 
+func get_stock_name() -> String:
+	return "HEALTH +%d" % roundi(data.health) if _stock == Stock.HEALTH else "AMMO +%d" % data.ammo
+
+
+func get_cash_price() -> int:
+	return data.health_cash if _stock == Stock.HEALTH else data.ammo_cash
+
+
+func get_favour_price() -> int:
+	return data.health_favour if _stock == Stock.HEALTH else data.ammo_favour
+
+
+## True while the player stands close enough to buy.
+func is_player_near() -> bool:
+	for body: Node3D in _pickup_area.get_overlapping_bodies():
+		if body is Player:
+			return true
+	return false
+
+
+## Empties the shelf and starts the restock. Call once it has been paid for.
+func take() -> void:
+	_stocked = false
+	_restock_left = data.restock_time
+	_roll_stock()
+	_refresh()
+
+
 func _physics_process(delta: float) -> void:
-	if _stocked:
-		for body: Node3D in _pickup_area.get_overlapping_bodies():
-			if body is Player and _is_wanted_by(body as Player):
-				_stocked = false
-				_restock_left = data.restock_time
-				collected.emit(self)
-				_roll_stock()
-				break
-	else:
+	if not _stocked:
 		_restock_left -= delta
 		if _restock_left <= 0.0:
 			_stocked = true
 	_refresh()
-
-
-## Health stays on the shelf for a player who has nothing to heal.
-func _is_wanted_by(player: Player) -> bool:
-	return _stock == Stock.AMMO or player.get_health() < player.data.max_health
 
 
 func _roll_stock() -> void:

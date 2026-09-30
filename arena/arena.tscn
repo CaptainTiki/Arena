@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://cn5bf1wgixvn6"]
 
+[ext_resource type="Resource" path="res://run/catalog.tres" id="40_catalog"]
 [ext_resource type="Script" uid="uid://cv0a8o3jtdm5e" path="res://arena/arena.gd" id="1_arena"]
 [ext_resource type="PackedScene" path="res://player/player.tscn" id="2_player"]
 [ext_resource type="PackedScene" path="res://hud/hud.tscn" id="3_hud"]
@@ -43,7 +44,8 @@ ambient_light_energy = 0.5
 script = ExtResource("1_arena")
 feel = ExtResource("13_feel")
 run = ExtResource("29_run")
-contracts = Array[ExtResource("8_contract")]([ExtResource("9_first_blood"), ExtResource("10_errand"), ExtResource("11_long_night")])
+catalog = ExtResource("40_catalog")
+default_contract = ExtResource("9_first_blood")
 pity_pod = ExtResource("24_pity")
 
 [node name="Sfx" parent="." unique_id=1323798051 instance=ExtResource("12_sfx")]

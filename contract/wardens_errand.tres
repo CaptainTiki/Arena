@@ -30,3 +30,6 @@ cash_reward = 500
 enemy_damage_scale = 1.5
 ramp = Array[ExtResource("2_wave")]([SubResource("Resource_ramp1"), SubResource("Resource_ramp2")])
 target_sponsor = ExtResource("3_warden")
+tier = 2
+favour_multiplier = 1.5
+unlocked_by = 1

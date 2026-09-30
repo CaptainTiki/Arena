@@ -1,5 +1,6 @@
 [gd_scene load_steps=8 format=3]
 
+[ext_resource type="PackedScene" path="res://arena/spawn_booth.tscn" id="9_booth"]
 [ext_resource type="Script" path="res://arena/level.gd" id="1_level"]
 [ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
 [ext_resource type="PackedScene" path="res://arena/hold_zone.tscn" id="3_zone"]
@@ -273,38 +274,27 @@ size = Vector3(14, 3, 5)
 
 [node name="SpawnPoints" type="Node3D" parent="."]
 
-[node name="TerraceWest" type="Marker3D" parent="SpawnPoints"]
+[node name="TerraceWest" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 3, -46)
 
-[node name="TerraceEast" type="Marker3D" parent="SpawnPoints"]
+[node name="TerraceEast" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 3, -46)
 
-[node name="EastNorth" type="Marker3D" parent="SpawnPoints"]
+[node name="EastNorth" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, -14)
 
-[node name="EastSouth" type="Marker3D" parent="SpawnPoints"]
+[node name="EastSouth" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 46, 0, 14)
 
-[node name="SouthWest" type="Marker3D" parent="SpawnPoints"]
+[node name="SouthWest" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14, 0, 46)
 
-[node name="SouthEast" type="Marker3D" parent="SpawnPoints"]
+[node name="SouthEast" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14, 0, 46)
 
-[node name="WestNorth" type="Marker3D" parent="SpawnPoints"]
+[node name="WestNorth" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 0, -15)
 
-[node name="WestSouth" type="Marker3D" parent="SpawnPoints"]
+[node name="WestSouth" parent="SpawnPoints" instance=ExtResource("9_booth")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47, 0, 15)
 
-[node name="InnerNorthEast" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, -17)
-
-[node name="InnerNorthWest" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, -17)
-
-[node name="InnerSouthEast" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 17, 0, 17)
-
-[node name="InnerSouthWest" type="Marker3D" parent="SpawnPoints"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -17, 0, 17)

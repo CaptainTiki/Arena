@@ -4,3 +4,4 @@
 
 [resource]
 script = ExtResource("1_data")
+request_multiplier = 2.0

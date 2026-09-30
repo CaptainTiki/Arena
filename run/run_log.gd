@@ -47,11 +47,16 @@ func _exit_tree() -> void:
 		_file.flush()
 
 
+## Opens the session's file if it isn't open yet. For logging outside a fight.
+func open_session() -> void:
+	if enabled and _file == null:
+		_start_session()
+
+
 func begin(contract: ContractData) -> void:
 	if not enabled:
 		return
-	if _file == null:
-		_start_session()
+	open_session()
 	if _file == null:
 		return
 	_run_number += 1
@@ -98,7 +103,7 @@ func log_world(event: String, extra: Dictionary = {}) -> void:
 
 ## Something the player did, or that happened to them. Stamped with where they stood and looked.
 func log_player(event: String, extra: Dictionary = {}) -> void:
-	if _file == null:
+	if _file == null or player == null:
 		return
 	var line: Dictionary = _stamp(event)
 	line.merge(extra)

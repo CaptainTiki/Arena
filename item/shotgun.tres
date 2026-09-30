@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://weapon/shotgun.tres" id="e0"]
+[ext_resource type="Resource" path="res://sponsor/butcher.tres" id="e1"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"shotgun"
+display_name = "SHOTGUN"
+description = "Clears what is in front of you. Loud, and shells are hard to come by."
+category = 0
+price_favour = 35
+sponsor = ExtResource("e1")
+weapon = ExtResource("e0")

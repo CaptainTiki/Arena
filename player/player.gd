@@ -8,8 +8,12 @@ signal dashed(direction: Vector3)
 ## A hit the dash carried the player through.
 signal dodged(hit: HitInfo)
 signal weapon_changed(weapon: Weapon)
+## The thing in the pocket was used.
+signal item_used(item: ItemData)
 
 @export var data: PlayerData
+## Off in the base: no firing, reloading or swapping, and the weapons are out of sight.
+@export var armed: bool = true
 
 var _health: float = 0.0
 var _base_mask: int = 0
@@ -25,6 +29,12 @@ var _shake_time: float = 0.0
 var _shake_noise: FastNoiseLite = FastNoiseLite.new()
 ## Every weapon carried, in slot order. `_weapon` is the one in hand.
 var _weapons: Array[Weapon] = []
+var _damage_taken_scale: float = 1.0
+var _sprint_scale: float = 1.0
+## What is in the pocket, or null once it has been used.
+var _pocket: ItemData
+var _heal_left: float = 0.0
+var _heal_rate: float = 0.0
 
 @onready var _intent: PlayerIntent = $Intent
 @onready var _head: Node3D = $Head
@@ -43,7 +53,38 @@ func _ready() -> void:
 			var weapon: Weapon = child as Weapon
 			_weapons.append(weapon)
 			weapon.recoiled.connect(_on_weapon_recoiled)
-			weapon.visible = weapon == _weapon
+			weapon.visible = armed and weapon == _weapon
+
+
+## What to carry into the fight. Without this call the player carries every weapon there is, for testing.
+func equip(loadout: Loadout) -> void:
+	var carried: Array[Weapon] = []
+	for weapon_data: WeaponData in loadout.weapons:
+		for weapon: Weapon in _weapons:
+			if weapon.data == weapon_data:
+				carried.append(weapon)
+	if carried.is_empty():
+		return
+	for weapon: Weapon in _weapons:
+		weapon.visible = false
+	_weapons = carried
+	_weapon = _weapons[0]
+	_weapon.visible = armed
+
+	var ammo_scale: float = 1.0
+	if loadout.vest != null:
+		_damage_taken_scale = loadout.vest.damage_taken_scale
+		_sprint_scale = loadout.vest.sprint_scale
+		ammo_scale = loadout.vest.ammo_scale
+	for weapon: Weapon in _weapons:
+		weapon.scale_ammo(ammo_scale)
+	for mod: ItemData in loadout.mods:
+		if mod.effect == ItemData.Effect.STARTER_MAG:
+			# The starting weapon is the first one in the scene.
+			for weapon: Weapon in _weapons:
+				if weapon == $Head/Camera3D/Weapon:
+					weapon.add_mag_size(roundi(mod.amount))
+	_pocket = loadout.consumable
 
 
 func _process(delta: float) -> void:
@@ -74,6 +115,12 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 
 	move_and_slide()
+	_tick_heal(delta)
+
+	if not armed:
+		return
+	if _intent.consume_use_item():
+		_use_pocket()
 
 	var slot: int = _intent.consume_weapon_slot()
 	if _intent.consume_weapon_cycle():
@@ -93,6 +140,7 @@ func take_hit(hit: HitInfo) -> void:
 	if is_invulnerable():
 		dodged.emit(hit)
 		return
+	hit.damage *= _damage_taken_scale
 	_health = maxf(_health - hit.damage, 0.0)
 	damaged.emit(hit)
 	health_changed.emit(_health, data.max_health)
@@ -103,6 +151,34 @@ func take_hit(hit: HitInfo) -> void:
 func heal(amount: float) -> void:
 	_health = minf(_health + amount, data.max_health)
 	health_changed.emit(_health, data.max_health)
+
+
+## What is in the pocket, or null.
+func get_pocket() -> ItemData:
+	return _pocket
+
+
+func is_healing() -> bool:
+	return _heal_left > 0.0
+
+
+func _use_pocket() -> void:
+	if _pocket == null or _health <= 0.0 or _health >= data.max_health:
+		return
+	var item: ItemData = _pocket
+	_pocket = null
+	if item.effect == ItemData.Effect.HEAL_OVER_TIME:
+		_heal_left = maxf(item.duration, 0.01)
+		_heal_rate = item.amount / _heal_left
+	item_used.emit(item)
+
+
+func _tick_heal(delta: float) -> void:
+	if _heal_left <= 0.0 or _health <= 0.0:
+		return
+	var step: float = minf(delta, _heal_left)
+	_heal_left -= step
+	heal(_heal_rate * step)
 
 
 ## 0.1 makes the dash come back 10% sooner.
@@ -179,7 +255,7 @@ func _start_dash(wish_direction: Vector3) -> void:
 
 
 func _apply_ground_movement(wish_direction: Vector3, delta: float) -> void:
-	var top_speed: float = data.sprint_speed if _is_sprinting() else data.walk_speed
+	var top_speed: float = data.sprint_speed * _sprint_scale if _is_sprinting() else data.walk_speed
 	var backward: float = maxf(_intent.get_move().y, 0.0)
 	top_speed *= lerpf(1.0, data.backpedal_multiplier, backward)
 	var target: Vector3 = wish_direction * top_speed

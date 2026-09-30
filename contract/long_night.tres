@@ -18,3 +18,6 @@ enemy_health_scale = 2.0
 enemy_damage_scale = 1.0
 ramp = Array[ExtResource("2_wave")]([ExtResource("3_wave1"), ExtResource("4_wave2"), ExtResource("5_wave3"), ExtResource("6_wave4")])
 target_count = 0
+tier = 3
+favour_multiplier = 2.0
+unlocked_by = 2

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"armour_vest"
+display_name = "ARMOUR VEST"
+description = "Plates where the pockets were. Every hit does 35% less. You start with 40% less ammo and carry 40% less."
+category = 1
+price_cash = 600
+damage_taken_scale = 0.65
+ammo_scale = 0.6

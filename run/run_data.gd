@@ -6,10 +6,9 @@ extends Resource
 ## Seconds the summary ignores input after it appears, so a panic click doesn't skip it.
 @export var summary_input_delay: float = 1.0
 
-@export_group("Reputation")
-## A sponsor's reputation rises by one for every this many pods it dropped during the fight.
-@export var drops_per_reputation: int = 2
-@export var max_reputation_gain: int = 3
+@export_group("Favour")
+## The sponsor who asked for a contract pays this many times its usual favour for it.
+@export var request_multiplier: float = 2.0
 
 @export_group("Hold Zone Noise")
 ## Standing in the active hold zone is heard this far from the zone.

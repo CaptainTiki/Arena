@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
+[ext_resource type="Resource" path="res://weapon/pistol.tres" id="e0"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"pistol"
+display_name = "PISTOL"
+description = "The one they hand you at the gate. Twelve rounds, and it kills through the weak point."
+category = 0
+starter = true
+weapon = ExtResource("e0")

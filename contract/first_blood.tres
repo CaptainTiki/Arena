@@ -1,30 +1,47 @@
-[gd_resource type="Resource" script_class="ContractData" format=3 uid="uid://g5bf8fol7ga2"]
+[gd_resource type="Resource" script_class="ContractData" format=3]
 
-[ext_resource type="Script" uid="uid://cxs5nt4avi8du" path="res://contract/contract_data.gd" id="1_contract"]
-[ext_resource type="Script" uid="uid://tqtgi0wprxcc" path="res://spawn/spawn_wave.gd" id="1_vg66h"]
-[ext_resource type="Script" uid="uid://c7e8t4y6qfgbc" path="res://contract/roster_wave.gd" id="2_wave"]
+[ext_resource type="Script" path="res://contract/contract_data.gd" id="1_contract"]
+[ext_resource type="Script" path="res://contract/roster_wave.gd" id="2_wave"]
 
 [sub_resource type="Resource" id="Resource_wave1"]
 script = ExtResource("2_wave")
-grunts = 4
+start_time = 0.0
+grunts = 5
+shooters = 2
+heavies = 0
 
 [sub_resource type="Resource" id="Resource_wave2"]
 script = ExtResource("2_wave")
-start_time = 60.0
-grunts = 3
+start_time = 50.0
+grunts = 4
 shooters = 2
+heavies = 0
 
 [sub_resource type="Resource" id="Resource_wave3"]
 script = ExtResource("2_wave")
-start_time = 130.0
-grunts = 2
-shooters = 3
+start_time = 110.0
+grunts = 3
+shooters = 2
+heavies = 1
+
+[sub_resource type="Resource" id="Resource_wave4"]
+script = ExtResource("2_wave")
+start_time = 180.0
+grunts = 4
+shooters = 2
 heavies = 1
 
 [resource]
 script = ExtResource("1_contract")
 display_name = "FIRST BLOOD"
 briefing = "A warm-up bout. The crowd wants to see what you can do."
+type = 0
+time_limit = 360.0
+cash_reward = 300
+tier = 1
+favour_multiplier = 1.0
+unlocked_by = 0
+enemy_health_scale = 1.0
 enemy_damage_scale = 1.5
-roster = Array[ExtResource("2_wave")]([SubResource("Resource_wave1"), SubResource("Resource_wave2"), SubResource("Resource_wave3")])
+roster = Array[ExtResource("2_wave")]([SubResource("Resource_wave1"), SubResource("Resource_wave2"), SubResource("Resource_wave3"), SubResource("Resource_wave4")])
 target_count = 0

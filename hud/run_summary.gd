@@ -31,27 +31,21 @@ func show_summary(
 			roundi(stats.get_headshot_rate() * 100.0), roundi(stats.get_hit_rate() * 100.0),
 			stats.shots]
 
-	var favourite: SponsorResult = null
+	var earned: int = 0
 	for index: int in _rows.size():
 		_rows[index].visible = index < results.size()
 		if index >= results.size():
 			continue
 		_rows[index].setup(results[index])
-		if favourite == null or results[index].reputation_after > favourite.reputation_after:
-			favourite = results[index]
+		earned += results[index].favour_after - results[index].favour_before
 
-	if favourite == null or favourite.reputation_after <= 0:
-		_teaser.text = "No sponsor knows your name yet."
-		_teaser.modulate = Color.WHITE
+	if cash_earned > 0:
+		_teaser.text = "Favour earned: %d, at x%s for this contract." % [
+				earned, String.num(contract.favour_multiplier, 1)]
 	else:
-		_teaser.text = "Next fight, courtesy of %s: %s" % [
-				favourite.sponsor.display_name, favourite.sponsor.perk_teaser]
-		_teaser.modulate = favourite.sponsor.color
+		_teaser.text = "Nothing is paid for a loss. What you bought is still yours."
 
 
-func show_prompt(contracts: Array[ContractData]) -> void:
-	var choices: PackedStringArray = ["Click: again"]
-	for index: int in contracts.size():
-		choices.append("%d: %s" % [index + 1, contracts[index].display_name])
-	_prompt.text = "      ".join(choices)
+func show_prompt() -> void:
+	_prompt.text = "Click or [E]: back to the base"
 	_prompt.visible = true

@@ -18,6 +18,8 @@ extends Resource
 @export_group("Ammo")
 @export var mag_size: int = 12
 @export var starting_reserve: int = 24
+## The most spare ammo that can be carried. Pickups past this are wasted.
+@export var max_reserve: int = 60
 @export var reload_time: float = 1.4
 ## Pulling the trigger on an empty mag starts a reload if there is reserve.
 @export var reload_on_dry_fire: bool = true

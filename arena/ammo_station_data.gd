@@ -5,6 +5,11 @@ extends Resource
 @export var ammo: int = 12
 ## Health restored per pickup.
 @export var health: float = 30.0
+## What each costs. Paid in cash, or in favour with whichever sponsor has the most to spare.
+@export var ammo_cash: int = 20
+@export var ammo_favour: int = 2
+@export var health_cash: int = 40
+@export var health_favour: int = 4
 ## Chance that a restock brings health instead of ammo.
 @export_range(0.0, 1.0) var health_chance: float = 0.4
 ## Seconds from being emptied to being stocked again.

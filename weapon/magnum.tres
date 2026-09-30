@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" path="res://weapon/weapon_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+display_name = ".357"
+damage = 60.0
+headshot_multiplier = 6.0
+max_range = 200.0
+knockback = 9.0
+mag_size = 6
+starting_reserve = 12
+max_reserve = 18
+reload_time = 2.4
+pickup_scale = 0.3
+fire_interval = 0.5
+draw_time = 0.35
+recoil_pitch_degrees = 9.0
+recoil_yaw_degrees = 2.0
+recoil_recover_speed = 4.5
+kick_distance = 0.22
+reload_dip = 0.3
+noise_radius = 65.0

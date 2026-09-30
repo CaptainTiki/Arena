@@ -25,6 +25,7 @@ var infinite_reserve: bool = false
 var _stats: WeaponData
 var _mag: int = 0
 var _reserve: int = 0
+var _max_reserve: int = 0
 var _cooldown_left: float = 0.0
 var _reload_left: float = 0.0
 var _kick: float = 0.0
@@ -38,6 +39,7 @@ func _ready() -> void:
 	_stats = data.duplicate() as WeaponData
 	_mag = _stats.mag_size
 	_reserve = _stats.starting_reserve
+	_max_reserve = _stats.max_reserve
 	_gun_rest = _gun.position
 
 
@@ -92,10 +94,21 @@ func draw() -> void:
 	_cooldown_left = maxf(_cooldown_left, _stats.draw_time)
 
 
-## `amount` is in pistol rounds; each weapon takes its own share.
-func add_reserve(amount: int) -> void:
-	_reserve += _scale_pickup(amount)
+## A vest changes how much ammo the fight starts with and how much can be carried. Call before the fight.
+func scale_ammo(scale: float) -> void:
+	_reserve = roundi(_stats.starting_reserve * scale)
+	_max_reserve = roundi(_stats.max_reserve * scale)
 	ammo_changed.emit(_mag, _reserve)
+
+
+## `amount` is in pistol rounds; each weapon takes its own share, up to what the pockets hold.
+func add_reserve(amount: int) -> void:
+	_reserve = mini(_reserve + _scale_pickup(amount), maxi(_max_reserve, _reserve))
+	ammo_changed.emit(_mag, _reserve)
+
+
+func is_reserve_full() -> bool:
+	return _reserve >= _max_reserve
 
 
 func add_mag_size(amount: int) -> void:

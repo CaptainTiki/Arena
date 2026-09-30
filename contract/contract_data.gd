@@ -18,12 +18,21 @@ enum Type {
 @export var time_limit: float = 300.0
 @export var cash_reward: int = 300
 
+@export_group("Ladder")
+## 1 is the bottom rung.
+@export var tier: int = 1
+## Favour earned in this fight is multiplied by this.
+@export var favour_multiplier: float = 1.0
+## Open once a contract of this tier has been won. Zero is open from the start.
+@export var unlocked_by: int = 0
+
 @export_group("Enemies")
 @export var enemy_health_scale: float = 1.0
 @export var enemy_damage_scale: float = 1.0
 ## EXTERMINATION: the named enemies, in the order they arrive.
 @export var roster: Array[RosterWave] = []
-## The whole roster is in the arena from the start, spread out and unaware. Off brings the waves in on the clock.
+## The first wave is in the arena from the start, spread out and unaware; the rest come in through the
+## spawn booths on the clock. Off brings the first wave in through the booths as well.
 @export var roster_on_floor: bool = true
 ## SURVIVAL and SCAVENGER: the density ramp.
 @export var ramp: Array[SpawnWave] = []
@@ -64,9 +73,25 @@ func get_enemy_summary() -> String:
 		parts.append("%d shooter%s" % [shooters, "" if shooters == 1 else "s"])
 	if heavies > 0:
 		parts.append("%d heav%s" % [heavies, "y" if heavies == 1 else "ies"])
-	if roster_on_floor:
-		return ", ".join(parts) + ", already in the arena"
-	return ", ".join(parts) + " in %d wave%s" % [roster.size(), "" if roster.size() == 1 else "s"]
+	if roster.size() <= 1:
+		return ", ".join(parts)
+	return ", ".join(parts) + ", %d of them waiting inside" % roster[0].get_total()
+
+
+## The briefing card. `asked_by` is the sponsor who asked for this fight, or null.
+func get_card(asked_by: SponsorData) -> String:
+	var lines: PackedStringArray = [
+		display_name,
+		briefing,
+		"",
+		get_goal(),
+		"Enemies: %s" % get_enemy_summary(),
+		"Time limit: %s      Pays: $%d      Favour: x%s" % [
+				Hud.format_clock(time_limit), cash_reward, String.num(favour_multiplier, 1)],
+	]
+	if asked_by != null:
+		lines.append("%s asked for this one and pays double favour" % asked_by.display_name)
+	return "\n".join(lines)
 
 
 func get_goal() -> String:

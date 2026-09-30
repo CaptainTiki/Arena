@@ -46,6 +46,8 @@ static var _debug: bool = false
 @onready var _ammo_label: Label = $AmmoLabel
 @onready var _status_label: Label = $StatusLabel
 @onready var _reload_bar: ProgressBar = $ReloadBar
+@onready var _prompt_label: Label = $PromptLabel
+@onready var _pocket_label: Label = $PocketLabel
 
 
 func _ready() -> void:
@@ -152,34 +154,25 @@ func set_objective(text: String) -> void:
 	_objective_label.text = text
 
 
+## What is in the pocket and the key that uses it. Null for an empty pocket.
+func set_pocket(item: ItemData) -> void:
+	_pocket_label.text = "" if item == null else "%s [F]" % item.display_name
+
+
+## A line above the ammo for something that can be done right here. Empty clears it.
+func set_prompt(text: String) -> void:
+	_prompt_label.text = text
+
+
 ## The contract card shown as the fight starts.
-func show_briefing(contract: ContractData, seconds: float) -> void:
+func show_briefing(contract: ContractData, asked_by: SponsorData, seconds: float) -> void:
 	if _briefing_tween != null:
 		_briefing_tween.kill()
-	_briefing_label.text = "%s\n%s\n\n%s\nEnemies: %s\nTime limit: %s      Pays: $%d" % [
-			contract.display_name, contract.briefing, contract.get_goal(),
-			contract.get_enemy_summary(), format_clock(contract.time_limit), contract.cash_reward]
+	_briefing_label.text = contract.get_card(asked_by)
 	_briefing_label.modulate.a = 1.0
 	_briefing_tween = create_tween()
 	_briefing_tween.tween_interval(seconds)
 	_briefing_tween.tween_property(_briefing_label, ^"modulate:a", 0.0, 0.8)
-
-
-## The list of contracts to pick from, shown until one is chosen.
-func show_booking(contracts: Array[ContractData], booked: int) -> void:
-	if _briefing_tween != null:
-		_briefing_tween.kill()
-	var lines: PackedStringArray = ["CHOOSE A CONTRACT", ""]
-	for index: int in contracts.size():
-		var contract: ContractData = contracts[index]
-		lines.append("[%d]  %s   %s   %s   $%d%s" % [
-				index + 1, contract.display_name, contract.get_type_name(),
-				format_clock(contract.time_limit), contract.cash_reward,
-				"   (last booked)" if index == booked else ""])
-	lines.append("")
-	lines.append("Press a number, or click for the last booked")
-	_briefing_label.text = "\n".join(lines)
-	_briefing_label.modulate.a = 1.0
 
 
 static func format_clock(seconds: float) -> String:

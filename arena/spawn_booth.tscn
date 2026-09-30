@@ -1,0 +1,60 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://arena/spawn_booth.gd" id="1_booth"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_frame"]
+albedo_color = Color(0.2, 0.2, 0.23, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_pad"]
+material = SubResource("StandardMaterial3D_frame")
+size = Vector3(4, 0.06, 4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+material = SubResource("StandardMaterial3D_frame")
+size = Vector3(0.3, 3.2, 0.3)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lintel"]
+material = SubResource("StandardMaterial3D_frame")
+size = Vector3(4.3, 0.3, 4.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_light"]
+resource_local_to_scene = true
+shading_mode = 0
+albedo_color = Color(0.12, 0.12, 0.12, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_light"]
+size = Vector3(1.2, 0.4, 1.2)
+
+[node name="SpawnBooth" type="Marker3D"]
+script = ExtResource("1_booth")
+
+[node name="Pad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_pad")
+
+[node name="PostA" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.6, 2)
+mesh = SubResource("BoxMesh_post")
+
+[node name="PostB" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.6, 2)
+mesh = SubResource("BoxMesh_post")
+
+[node name="PostC" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2, 1.6, -2)
+mesh = SubResource("BoxMesh_post")
+
+[node name="PostD" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 1.6, -2)
+mesh = SubResource("BoxMesh_post")
+
+[node name="Lintel" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.35, 0)
+mesh = SubResource("BoxMesh_lintel")
+
+[node name="Light" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.7, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_light")
+material_override = SubResource("StandardMaterial3D_light")

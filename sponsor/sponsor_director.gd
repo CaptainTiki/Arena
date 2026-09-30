@@ -13,6 +13,8 @@ signal sponsor_reacted(index: int, reason: String, positive: bool, minor: bool)
 var _scores: Array[float] = []
 var _thresholds: Array[float] = []
 var _drops: Array[int] = []
+## Score over the whole fight, which drops don't spend. This is what favour is paid on.
+var _earned: Array[float] = []
 var _chains: Array[int] = []
 var _chain_left: Array[float] = []
 var _holding: bool = false
@@ -23,6 +25,7 @@ func _ready() -> void:
 		_scores.append(0.0)
 		_thresholds.append(sponsor.threshold)
 		_drops.append(0)
+		_earned.append(0.0)
 		_chains.append(0)
 		_chain_left.append(0.0)
 
@@ -92,9 +95,19 @@ func get_drop_count(index: int) -> int:
 	return _drops[index]
 
 
+func get_drop_counts() -> Array[int]:
+	return _drops
+
+
+## What each sponsor made of the fight so far, in sponsor order.
+func get_earned() -> Array[float]:
+	return _earned
+
+
 func _add(index: int, amount: float, reason: String, minor: bool = false) -> void:
 	var sponsor: SponsorData = sponsors[index]
 	_scores[index] = maxf(_scores[index] + amount, 0.0)
+	_earned[index] = maxf(_earned[index] + amount, 0.0)
 	if not reason.is_empty():
 		sponsor_reacted.emit(index, reason, amount > 0.0, minor)
 	while _scores[index] >= _thresholds[index]:

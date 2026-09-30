@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"ammo_vest"
+display_name = "AMMO VEST"
+description = "Pockets everywhere. Start with half as much ammo again, and carry half as much again."
+category = 1
+price_cash = 400
+ammo_scale = 1.5

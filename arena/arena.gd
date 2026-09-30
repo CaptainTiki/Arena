@@ -1,15 +1,19 @@
 class_name Arena
 extends Node3D
-## Top of the ownership spine. Children report up to here; Arena routes between them.
-## Runs one contract from briefing to summary.
+## Owns one fight. Children report up to here; Arena routes between them.
+## Runs one contract from briefing to summary, then tells its owner it is finished.
+
+## The summary has been read and the player wants out.
+signal finished
 
 enum Outcome { WON, DIED, OUT_OF_TIME }
 
 @export var feel: FeelData
 @export var run: RunData
-## Contracts on offer. The booked one is remembered in the profile.
-@export var contracts: Array[ContractData] = []
-## Where reputation, cash and the booking are kept between fights.
+@export var catalog: Catalog
+## Fought when the scene is run on its own, with nobody to book one.
+@export var default_contract: ContractData
+## Where favour, cash and everything owned are kept between fights.
 @export var profile_path: String = "user://profile.cfg"
 
 @export_group("Pity Drop")
@@ -19,8 +23,6 @@ enum Outcome { WON, DIED, OUT_OF_TIME }
 @export var pity_delay: float = 6.0
 
 @export_group("Debug")
-## The first fight of a session waits for a contract to be picked. Off goes straight to the booked one.
-@export var ask_for_contract: bool = true
 ## Always fight this contract, whatever is booked.
 @export var debug_contract: ContractData
 ## Reloads never drain the reserve, so feel can be tested without the ammo economy.
@@ -28,12 +30,13 @@ enum Outcome { WON, DIED, OUT_OF_TIME }
 ## Start a density ramp this many seconds in, to test late-fight crowds.
 @export var debug_start_time: float = 0.0
 
-## Set once a contract has been picked, so reloading into the fight doesn't ask again.
-static var _session_booked: bool = false
+## Set by the owner before the fight joins the tree. Left empty, the player fights the default
+## contract carrying every weapon there is.
+var contract: ContractData
 
-var _booking: bool = false
 var _contract: ContractData
-var _contract_index: int = 0
+var _locker: Locker
+var _near_station: AmmoStation
 var _stats: RunStats = RunStats.new()
 var _run_time: float = 0.0
 var _run_over: bool = false
@@ -67,13 +70,17 @@ var _zone_noise_left: float = 0.0
 func _ready() -> void:
 	_player.global_position = _player_spawn.global_position
 	_player.rotation.y = _player_spawn.global_rotation.y
-	_book_contract()
+	_locker = Locker.new(catalog, profile_path)
+	_contract = default_contract if contract == null else contract
+	if debug_contract != null:
+		_contract = debug_contract
+	if contract != null:
+		_player.equip(_locker.build_loadout())
+		_weapon = _player.get_weapon()
 
-	_booking = ask_for_contract and not _session_booked and debug_contract == null and contracts.size() > 1
 	_log.player = _player
 	_log.spawner = _spawner
-	if not _booking:
-		_log.begin(_contract)
+	_log.begin(_contract)
 
 	for weapon: Weapon in _player.get_weapons():
 		weapon.infinite_reserve = debug_infinite_reserve
@@ -92,6 +99,8 @@ func _ready() -> void:
 	_player.died.connect(_on_player_died)
 	_player.dashed.connect(_on_player_dashed)
 	_player.dodged.connect(_log.log_player_hit.bind(true))
+	_player.item_used.connect(_on_player_item_used)
+	_hud.set_pocket(_player.get_pocket())
 
 	_spawner.enemy_died.connect(_on_enemy_died)
 	_spawner.enemy_acted.connect(_on_enemy_acted)
@@ -106,10 +115,7 @@ func _ready() -> void:
 	_spawner.target = _player
 
 	_hud.setup_sponsors(_sponsors.sponsors)
-	if _booking:
-		_hud.show_booking(contracts, _contract_index)
-	else:
-		_hud.show_briefing(_contract, run.briefing_time)
+	_hud.show_briefing(_contract, _locker.get_request_for(_contract), run.briefing_time)
 	_sponsors.standing_changed.connect(_hud.set_sponsor_progress)
 	_sponsors.sponsor_reacted.connect(_hud.show_sponsor_reaction)
 	_sponsors.drop_earned.connect(_on_sponsor_drop_earned)
@@ -121,19 +127,10 @@ func _ready() -> void:
 	_hold_zones = _level.get_hold_zones()
 	_activate_zone(0)
 
-	for station: AmmoStation in _level.get_ammo_stations():
-		station.collected.connect(_on_ammo_station_collected)
-
-	if _booking:
-		_freeze_world()
-
 
 func _process(delta: float) -> void:
 	if _intent.consume_debug_toggle():
 		_hud.toggle_debug()
-	if _booking:
-		_tick_booking()
-		return
 	if _run_over:
 		_tick_summary(delta)
 		return
@@ -141,10 +138,11 @@ func _process(delta: float) -> void:
 	_hud.set_reload(_weapon.is_reloading(), _weapon.get_reload_progress())
 	_hud.set_stats(_stats.kills, _spawner.get_alive_count(), _contract.time_limit - _run_time)
 	_hud.set_objective(_get_objective_text())
+	_tick_stations()
 
 
 func _physics_process(delta: float) -> void:
-	if _run_over or _booking:
+	if _run_over:
 		return
 	_run_time += delta
 	_tick_pity(delta)
@@ -169,12 +167,6 @@ func is_run_over() -> bool:
 
 func get_contract() -> ContractData:
 	return _contract
-
-
-func _book_contract() -> void:
-	var profile: ProfileStore = ProfileStore.new(profile_path)
-	_contract_index = posmod(profile.get_contract_index(), maxi(contracts.size(), 1))
-	_contract = debug_contract if debug_contract != null else contracts[_contract_index]
 
 
 func _is_goal_met() -> bool:
@@ -207,33 +199,27 @@ func _end_run(outcome: Outcome) -> void:
 	_stats.time_survived = minf(_run_time, _contract.time_limit)
 	_log.finish(Outcome.keys()[outcome], _stats)
 
-	var profile: ProfileStore = ProfileStore.new(profile_path)
-	var results: Array[SponsorResult] = []
-	for index: int in _sponsors.sponsors.size():
-		var result: SponsorResult = SponsorResult.new()
-		result.sponsor = _sponsors.sponsors[index]
-		result.drops = _sponsors.get_drop_count(index)
-		result.standing = _sponsors.get_progress(index)
-		result.reputation_before = profile.get_reputation(result.sponsor)
-		result.reputation_after = result.reputation_before + _get_reputation_gain(result.drops)
-		profile.set_reputation(result.sponsor, result.reputation_after)
-		results.append(result)
+	var won: bool = outcome == Outcome.WON
+	var results: Array[SponsorResult] = _locker.settle(
+			_contract, won, _sponsors.sponsors, _sponsors.get_earned(), _sponsors.get_drop_counts(),
+			run.request_multiplier)
+	for result: SponsorResult in results:
 		_log.log_world("favor", {
 			"sponsor": result.sponsor.display_name,
+			"score": snappedf(result.score, 0.1),
 			"drops": result.drops,
-			"gained": result.reputation_after - result.reputation_before,
-			"total": result.reputation_after,
+			"requested": result.requested,
+			"gained": result.favour_after - result.favour_before,
+			"total": result.favour_after,
 		})
-	var cash_earned: int = _contract.cash_reward if outcome == Outcome.WON else 0
-	profile.set_cash(profile.get_cash() + cash_earned)
-	_log.log_world("cash", {"earned": cash_earned, "total": profile.get_cash()})
-	profile.save()
+	var cash_earned: int = _contract.cash_reward if won else 0
+	_log.log_world("cash", {"earned": cash_earned, "total": _locker.get_cash()})
 
 	_freeze_world()
 	_hud.visible = false
 	_summary_wait = run.summary_input_delay
 	_summary.show_summary(
-			_get_outcome_title(outcome), _contract, cash_earned, profile.get_cash(), _stats, results)
+			_get_outcome_title(outcome), _contract, cash_earned, _locker.get_cash(), _stats, results)
 	if outcome == Outcome.WON:
 		_sfx.play_contract_won()
 	else:
@@ -248,22 +234,6 @@ func _freeze_world() -> void:
 	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
 
 
-func _tick_booking() -> void:
-	var choice: int = _intent.consume_weapon_slot()
-	if _intent.consume_fire():
-		choice = _contract_index
-	if choice >= 0 and choice < contracts.size():
-		_start_contract(choice)
-
-
-func _start_contract(index: int) -> void:
-	var profile: ProfileStore = ProfileStore.new(profile_path)
-	profile.set_contract_index(index)
-	profile.save()
-	_session_booked = true
-	get_tree().reload_current_scene()
-
-
 func _get_outcome_title(outcome: Outcome) -> String:
 	match outcome:
 		Outcome.WON:
@@ -273,32 +243,23 @@ func _get_outcome_title(outcome: Outcome) -> String:
 	return "OUT OF TIME"
 
 
-func _get_reputation_gain(drops: int) -> int:
-	if drops <= 0 or run.drops_per_reputation <= 0:
-		return 0
-	return mini(ceili(float(drops) / float(run.drops_per_reputation)), run.max_reputation_gain)
-
-
-func _get_next_contract_index() -> int:
-	return (_contract_index + 1) % maxi(contracts.size(), 1)
-
-
 func _tick_summary(delta: float) -> void:
 	var was_waiting: bool = _summary_wait > 0.0
 	_summary_wait -= delta
-	# Read both every frame so neither press is left queued.
-	var again: bool = _intent.consume_fire()
-	var choice: int = _intent.consume_weapon_slot()
+	# Read every frame so a press made too early is not left queued.
+	var leave: bool = _intent.consume_fire() or _intent.consume_interact()
 	if _summary_wait > 0.0:
 		return
 	if was_waiting:
-		_summary.show_prompt(contracts)
+		_summary.show_prompt()
 		return
-	if again:
-		choice = _contract_index
-	if choice >= 0 and choice < contracts.size():
-		_log.log_world("summary_choice", {"contract": contracts[choice].display_name})
-		_start_contract(choice)
+	if not leave:
+		return
+	if finished.get_connections().is_empty():
+		# Run on its own, with no base to go back to.
+		get_tree().reload_current_scene()
+	else:
+		finished.emit()
 
 
 func _tick_pity(delta: float) -> void:
@@ -327,6 +288,63 @@ func _tick_zone_noise(holding: bool, delta: float) -> void:
 	if _zone_noise_left <= 0.0:
 		_zone_noise_left = run.zone_noise_interval
 		_spawner.make_noise(_hold_zones[_active_zone].global_position, run.zone_noise_radius, &"zone")
+
+
+## Stations sell what they stock: one key pays cash, the other pays favour.
+func _tick_stations() -> void:
+	_near_station = null
+	for station: AmmoStation in _level.get_ammo_stations():
+		if station.is_stocked() and station.is_player_near():
+			_near_station = station
+	var pay_cash: bool = _intent.consume_interact()
+	var pay_favour: bool = _intent.consume_interact_alt()
+	if _near_station == null:
+		_hud.set_prompt("")
+		return
+	_hud.set_prompt("%s      [E] $%d      [T] %d favour      You have %s" % [
+			_near_station.get_stock_name(), _near_station.get_cash_price(),
+			_near_station.get_favour_price(), _locker.get_wallet_text()])
+	if pay_cash or pay_favour:
+		_buy_from(_near_station, pay_favour)
+
+
+func _buy_from(station: AmmoStation, with_favour: bool) -> void:
+	var health: bool = station.get_stock() == AmmoStation.Stock.HEALTH
+	if health and _player.get_health() >= _player.data.max_health:
+		_hud.show_pickup("NOTHING TO HEAL", station.get_color())
+		return
+	if not health and _is_ammo_full():
+		_hud.show_pickup("POCKETS FULL", station.get_color())
+		return
+	var paid: String = _locker.pay(station.get_cash_price(), station.get_favour_price(), with_favour)
+	if paid.is_empty():
+		_hud.show_pickup("CAN'T PAY", station.get_color())
+		return
+	_hud.show_pickup("%s  for %s" % [station.get_stock_name(), paid], station.get_color())
+	_log.log_player("station", {
+		"stock": "health" if health else "ammo",
+		"amount": station.data.health if health else float(station.data.ammo),
+		"paid": paid,
+	})
+	if health:
+		_player.heal(station.data.health)
+	else:
+		_add_ammo(station.data.ammo)
+	station.take()
+
+
+func _is_ammo_full() -> bool:
+	for weapon: Weapon in _player.get_weapons():
+		if not weapon.is_reserve_full():
+			return false
+	return true
+
+
+func _on_player_item_used(item: ItemData) -> void:
+	_locker.spend(item)
+	_hud.set_pocket(null)
+	_hud.show_pickup(item.display_name, Color.WHITE)
+	_log.log_player("stim_used", {"item": item.display_name, "health": snappedf(_player.get_health(), 0.1)})
 
 
 ## Only one hold zone is live at a time.
@@ -471,14 +489,3 @@ func _on_pod_collected(pod_data: PodData, sponsor: SponsorData) -> void:
 func _add_ammo(rounds: int) -> void:
 	for weapon: Weapon in _player.get_weapons():
 		weapon.add_reserve(rounds)
-
-
-func _on_ammo_station_collected(station: AmmoStation) -> void:
-	if station.get_stock() == AmmoStation.Stock.HEALTH:
-		_player.heal(station.data.health)
-		_log.log_player("station", {"stock": "health", "amount": station.data.health})
-		_hud.show_pickup("HEALTH +%d" % roundi(station.data.health), station.get_color())
-		return
-	_add_ammo(station.data.ammo)
-	_log.log_player("station", {"stock": "ammo", "amount": station.data.ammo})
-	_hud.show_pickup("AMMO +%d" % station.data.ammo, station.get_color())

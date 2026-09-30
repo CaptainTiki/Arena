@@ -14,6 +14,7 @@ pellets = 16
 spread_degrees = 7.0
 mag_size = 6
 starting_reserve = 6
+max_reserve = 12
 reload_time = 2.2
 pickup_scale = 0.25
 fire_interval = 0.8

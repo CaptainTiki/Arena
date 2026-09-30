@@ -1,7 +1,8 @@
 class_name Spawner
 extends Node3D
 ## Puts enemies on the floor. Runs either a density ramp (keep N alive, rising over time)
-## or a roster (named groups, either all on the floor from the start or arriving on a schedule).
+## or a roster (named groups: the first can start on the floor, the rest arrive on a schedule).
+## Everything that arrives during the fight comes in through a spawn booth.
 ## Also passes noises on to the enemies near enough to hear them.
 
 signal enemy_died(enemy: Enemy, hit: HitInfo)
@@ -24,6 +25,9 @@ signal enemy_acted(enemy: Enemy, action: StringName)
 ## A roster put on the floor starts out of the target's sight: nothing between them and it on these layers
 ## rules a spot out.
 @export_flags_3d_physics var sight_mask: int = 1
+## The density ramp stops climbing once the floor has been full for this long: nothing is being killed,
+## so more would only bury the player. It picks up where it left off at the next kill.
+@export var ramp_stall_after: float = 8.0
 ## Seconds between counts of who is engaged, to decide who flanks.
 @export var flank_interval: float = 0.5
 
@@ -36,6 +40,9 @@ var _ramp: Array[SpawnWave] = []
 var _roster: Array[RosterWave] = []
 var _next_roster_wave: int = 0
 var _on_floor: bool = false
+## The density ramp's own clock, which stalls while the player is not keeping up.
+var _ramp_clock: float = 0.0
+var _full_time: float = 0.0
 var _flank_left: float = 0.0
 var _pending: Array[ScenePool] = []
 var _stagger_left: float = 0.0
@@ -70,7 +77,7 @@ func start_ramp(waves: Array[SpawnWave]) -> void:
 	_roster = []
 
 
-## `on_floor` puts every wave in the arena at once, spread out, instead of on the clock.
+## `on_floor` starts the first wave in the arena, spread out, instead of bringing it in through the booths.
 func start_roster(waves: Array[RosterWave], on_floor: bool = false) -> void:
 	_roster = waves
 	_ramp = []
@@ -121,6 +128,7 @@ func get_elapsed() -> float:
 
 func set_elapsed(seconds: float) -> void:
 	_elapsed = seconds
+	_ramp_clock = seconds
 
 
 func get_alive_count() -> int:
@@ -162,14 +170,17 @@ func get_next_wave_in() -> float:
 func get_target_alive() -> int:
 	var wave_start: float = 0.0
 	for wave: SpawnWave in _ramp:
-		if _elapsed < wave_start + wave.duration:
-			var progress: float = (_elapsed - wave_start) / wave.duration
+		if _ramp_clock < wave_start + wave.duration:
+			var progress: float = (_ramp_clock - wave_start) / wave.duration
 			return roundi(lerpf(wave.alive_at_start, wave.alive_at_end, progress))
 		wave_start += wave.duration
 	return _ramp[-1].alive_at_end
 
 
 func _tick_ramp(delta: float) -> void:
+	_full_time = _full_time + delta if get_alive_count() >= get_target_alive() else 0.0
+	if _full_time < ramp_stall_after:
+		_ramp_clock += delta
 	_spawn_timer -= delta
 	if _spawn_timer > 0.0:
 		return
@@ -198,11 +209,10 @@ func _tick_flanking(delta: float) -> void:
 		enemy.set_flanking(pack.size() >= enemy.data.flank_pack_size)
 
 
-func _tick_floor_roster() -> void:
-	while _next_roster_wave < _roster.size():
-		_queue_wave(_roster[_next_roster_wave])
-		_next_roster_wave += 1
-	# A full pool means that type is at its cap; the rest stay queued until one dies.
+func _place_first_wave() -> void:
+	_queue_wave(_roster[0])
+	_next_roster_wave = 1
+	# A full pool means that type is at its cap; the rest stay queued and come in through a booth.
 	var waiting: Array[ScenePool] = []
 	for pool: ScenePool in _pending:
 		var enemy: Enemy = pool.acquire() as Enemy
@@ -214,8 +224,8 @@ func _tick_floor_roster() -> void:
 
 
 func _tick_roster(delta: float) -> void:
-	if _on_floor:
-		_tick_floor_roster()
+	if _on_floor and _next_roster_wave == 0:
+		_place_first_wave()
 		return
 	var floor_clear: bool = get_alive_count() == 0 and _pending.is_empty()
 	_clear_time = _clear_time + delta if floor_clear else 0.0
@@ -256,7 +266,7 @@ func _queue_wave(wave: RosterWave) -> void:
 func _get_current_ramp_wave() -> SpawnWave:
 	var wave_start: float = 0.0
 	for wave: SpawnWave in _ramp:
-		if _elapsed < wave_start + wave.duration:
+		if _ramp_clock < wave_start + wave.duration:
 			return wave
 		wave_start += wave.duration
 	return _ramp[-1]
@@ -323,9 +333,10 @@ func _pick_spawn_point() -> Marker3D:
 	for point: Marker3D in _spawn_points:
 		if point.global_position.distance_to(target.global_position) >= min_spawn_distance:
 			far_enough.append(point)
-	if far_enough.is_empty():
-		return _spawn_points.pick_random()
-	return far_enough.pick_random()
+	var picked: Marker3D = _spawn_points.pick_random() if far_enough.is_empty() else far_enough.pick_random()
+	if picked is SpawnBooth:
+		(picked as SpawnBooth).open()
+	return picked
 
 
 func _on_enemy_died(enemy: Enemy, hit: HitInfo) -> void:

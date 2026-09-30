@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="Catalog" format=3]
+
+[ext_resource type="Script" path="res://run/catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://item/item_data.gd" id="2_item"]
+[ext_resource type="Script" path="res://contract/contract_data.gd" id="3_contract"]
+[ext_resource type="Script" path="res://sponsor/sponsor_data.gd" id="4_sponsor"]
+[ext_resource type="Resource" path="res://item/pistol.tres" id="i_pistol"]
+[ext_resource type="Resource" path="res://item/shotgun.tres" id="i_shotgun"]
+[ext_resource type="Resource" path="res://item/rifle.tres" id="i_rifle"]
+[ext_resource type="Resource" path="res://item/magnum.tres" id="i_magnum"]
+[ext_resource type="Resource" path="res://item/ammo_vest.tres" id="i_ammo_vest"]
+[ext_resource type="Resource" path="res://item/armour_vest.tres" id="i_armour_vest"]
+[ext_resource type="Resource" path="res://item/stim.tres" id="i_stim"]
+[ext_resource type="Resource" path="res://item/extended_mag.tres" id="i_extended_mag"]
+[ext_resource type="Resource" path="res://contract/open_gate.tres" id="c_open_gate"]
+[ext_resource type="Resource" path="res://contract/first_blood.tres" id="c_first_blood"]
+[ext_resource type="Resource" path="res://contract/wardens_errand.tres" id="c_wardens_errand"]
+[ext_resource type="Resource" path="res://contract/long_night.tres" id="c_long_night"]
+[ext_resource type="Resource" path="res://contract/main_event.tres" id="c_main_event"]
+[ext_resource type="Resource" path="res://sponsor/marksman.tres" id="s_marksman"]
+[ext_resource type="Resource" path="res://sponsor/butcher.tres" id="s_butcher"]
+[ext_resource type="Resource" path="res://sponsor/purist.tres" id="s_purist"]
+[ext_resource type="Resource" path="res://sponsor/warden.tres" id="s_warden"]
+
+[resource]
+script = ExtResource("1_catalog")
+items = Array[ExtResource("2_item")]([ExtResource("i_pistol"), ExtResource("i_shotgun"), ExtResource("i_rifle"), ExtResource("i_magnum"), ExtResource("i_ammo_vest"), ExtResource("i_armour_vest"), ExtResource("i_stim"), ExtResource("i_extended_mag")])
+contracts = Array[ExtResource("3_contract")]([ExtResource("c_open_gate"), ExtResource("c_first_blood"), ExtResource("c_wardens_errand"), ExtResource("c_long_night"), ExtResource("c_main_event")])
+sponsors = Array[ExtResource("4_sponsor")]([ExtResource("s_marksman"), ExtResource("s_butcher"), ExtResource("s_purist"), ExtResource("s_warden")])

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3]
+
+[ext_resource type="Script" path="res://item/item_data.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+id = &"extended_mag"
+display_name = "EXTENDED MAG"
+description = "Four more rounds in the pistol, for good."
+category = 3
+price_cash = 350
+effect = 2
+amount = 4.0

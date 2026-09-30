@@ -1,0 +1,109 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://base/base.gd" id="1_base"]
+[ext_resource type="PackedScene" path="res://arena/block.tscn" id="2_block"]
+[ext_resource type="PackedScene" path="res://player/player.tscn" id="3_player"]
+[ext_resource type="PackedScene" path="res://base/kiosk.tscn" id="4_kiosk"]
+[ext_resource type="PackedScene" path="res://base/kiosk_panel.tscn" id="5_panel"]
+[ext_resource type="Script" path="res://run/run_log.gd" id="6_log"]
+[ext_resource type="Resource" path="res://run/catalog.tres" id="7_catalog"]
+
+[sub_resource type="Environment" id="Environment_base"]
+background_mode = 1
+background_color = Color(0.08, 0.09, 0.11, 1)
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.6
+
+[node name="Base" type="Node3D"]
+script = ExtResource("1_base")
+catalog = ExtResource("7_catalog")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_base")
+
+[node name="Lamp" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.5, 0.866025, 0, -0.866025, 0.5, 0, 8, 0)
+
+[node name="RunLog" type="Node" parent="."]
+script = ExtResource("6_log")
+
+[node name="Room" type="Node3D" parent="."]
+
+[node name="Floor" parent="Room" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+size = Vector3(22, 1, 16)
+color = Color(0.32, 0.32, 0.35, 1)
+
+[node name="WallNorth" parent="Room" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -8.5)
+size = Vector3(24, 4, 1)
+color = Color(0.45, 0.45, 0.5, 1)
+
+[node name="WallSouth" parent="Room" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 8.5)
+size = Vector3(24, 4, 1)
+color = Color(0.45, 0.45, 0.5, 1)
+
+[node name="WallEast" parent="Room" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.5, 2, 0)
+size = Vector3(1, 4, 16)
+color = Color(0.45, 0.45, 0.5, 1)
+
+[node name="WallWest" parent="Room" instance=ExtResource("2_block")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -11.5, 2, 0)
+size = Vector3(1, 4, 16)
+color = Color(0.45, 0.45, 0.5, 1)
+
+[node name="Kiosks" type="Node3D" parent="."]
+
+[node name="WeaponRack" parent="Kiosks" instance=ExtResource("4_kiosk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.5, 0, -6)
+title = "WEAPON RACK"
+color = Color(1, 0.55, 0.2, 1)
+
+[node name="Wardrobe" parent="Kiosks" instance=ExtResource("4_kiosk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5, 0, -6)
+kind = 1
+title = "WARDROBE"
+color = Color(0.4, 0.8, 1, 1)
+
+[node name="Terminal" parent="Kiosks" instance=ExtResource("4_kiosk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, -6)
+kind = 2
+title = "AGENT'S TERMINAL"
+color = Color(0.4, 1, 0.5, 1)
+
+[node name="SponsorBoard" parent="Kiosks" instance=ExtResource("4_kiosk")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7.5, 0, -6)
+kind = 3
+title = "SPONSOR BOARD"
+color = Color(1, 0.85, 0.2, 1)
+
+[node name="PlayerSpawn" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 4)
+
+[node name="Player" parent="." instance=ExtResource("3_player")]
+armed = false
+
+[node name="KioskPanel" parent="." instance=ExtResource("5_panel")]
+
+[node name="Prompt" type="CanvasLayer" parent="."]
+
+[node name="Label" type="Label" parent="Prompt"]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -120.0
+offset_right = 300.0
+offset_bottom = -90.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 20
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
