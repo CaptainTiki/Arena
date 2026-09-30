@@ -48,6 +48,8 @@ func _ready() -> void:
 	_camera.fov = data.base_fov
 	_health = data.max_health
 	_base_mask = collision_mask
+	_intent.menu_repeat_delay = data.menu_repeat_delay
+	_intent.menu_repeat_interval = data.menu_repeat_interval
 	for child: Node in _camera.get_children():
 		if child is Weapon:
 			var weapon: Weapon = child as Weapon
@@ -88,7 +90,7 @@ func equip(loadout: Loadout) -> void:
 
 
 func _process(delta: float) -> void:
-	_apply_look()
+	_apply_look(delta)
 	_update_recoil(delta)
 	_update_shake(delta)
 	_update_fov(delta)
@@ -271,13 +273,18 @@ func _is_sprinting() -> bool:
 	return _intent.is_sprinting() and _intent.get_move().y < 0.0
 
 
-func _apply_look() -> void:
-	var look: Vector2 = _intent.consume_look()
+func _apply_look(delta: float) -> void:
+	var look: Vector2 = _intent.consume_look() * data.mouse_sensitivity
+	# The mouse says how far it moved; the stick says how fast to turn.
+	var stick: Vector2 = _intent.get_look_stick()
+	stick *= pow(stick.length(), data.stick_curve - 1.0)
+	look.x += stick.x * deg_to_rad(data.stick_yaw_speed) * delta
+	look.y += stick.y * deg_to_rad(data.stick_pitch_speed) * delta
 	if look.is_zero_approx():
 		return
-	rotate_y(-look.x * data.mouse_sensitivity)
+	rotate_y(-look.x)
 	var max_pitch: float = deg_to_rad(data.max_pitch_degrees)
-	_pitch = clampf(_pitch - look.y * data.mouse_sensitivity, -max_pitch, max_pitch)
+	_pitch = clampf(_pitch - look.y, -max_pitch, max_pitch)
 
 
 func _update_recoil(delta: float) -> void:

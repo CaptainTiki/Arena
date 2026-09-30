@@ -20,7 +20,7 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 * Ownership spine, no autoload event bus. `Game` owns `Base` and `Arena`, one at a time, and swaps them. `Arena` owns the spawner, sponsors, pods, player and HUD. Children signal up; the owner routes.
 * Money, favour, what is owned and what is carried all go through `Locker`, which saves on every change.
 * All damage goes through `take_hit(hit: HitInfo)`.
-* Only `PlayerIntent` reads input. Everything else asks it.
+* Only `PlayerIntent` reads input. Everything else asks it. Keyboard, mouse and controller all arrive as the same intents; buttons come as events, sticks and the trigger are asked about each frame.
 * Greybox visuals: boxes, capsules, flat colours. Sound is allowed; tones are generated from `ToneData`, no audio files.
 * Level geometry is built from `arena/block.tscn` (set `size`, don't scale). The navigation mesh bakes itself on load.
 
@@ -57,6 +57,8 @@ Test scripts extend `SceneTree`. Things that have bitten before:
 * Fire with `player.get_weapon()`, not a weapon reference taken at the start; the weapon in hand changes.
 * Press keys with `Input.parse_input_event` and an `InputEventAction`, and send the release straight after. A movement action left pressed walks the player away once the menu closes.
 * Click a menu row by emitting `pressed` on its `Button`.
+* Menu steps are read from what is held, once a frame. Press a direction, wait a frame or two, then release it; pressed and released in the same frame it is never seen.
+* A controller is an `InputEventJoypadMotion` or `InputEventJoypadButton` through `Input.parse_input_event`. Set a stick back to 0.0 when done. Both axes pushed right over is a diagonal of length 1, so each turns at 0.7 of full speed.
 * Hitstop is timed in real milliseconds. Headless runs faster than real time, so a kill slows many frames of game time; fights take longer on the frame count than on the log's clock.
 * The navigation map is empty for the first tick or two. The spawner waits for it; a test that places things itself must too.
 * No test scripts are kept in the repo. Write them in a scratch folder.
@@ -67,23 +69,33 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 ## Where things stand
 
-As of 2026-09-29. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger; stop when a decision needs the tester.
+As of the end of 2026-09-29, on the desktop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again. Numbers get tuned once the arc has been played.
 
-Every system in the slice doc is built and has been played once (The Open Gate, won, pistol only). The kiosk menus that replaced the text panels are **not yet played or committed**.
+Every system in the slice doc is built. Played so far: perception AI (liked a lot), and one full loop on The Open Gate with the pistol (won). **Built and committed but not yet played:** the kiosk menus, the shotgun moving to the Warden, and controller support.
 
 The loop as built: start in the base with a pistol and $100. Book a contract at the agent's terminal, fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. The Warden sells the shotgun, the Marksman the rifle, the Butcher the .357, all for favour. Cash buys vests, stims, a pistol mod, and ammo or health at stations mid-fight.
 
-Keys: `E` interact and pay cash, `T` pay favour, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back.
+Keys: `E` interact and pay cash, `T` pay favour, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
 
 Every number in the economy is a placeholder. Nothing has been balanced; the twenty-minute arc has not been played end to end.
+
+### Start here next session
+
+1. This is a different machine from the one the work was done on. Find its Godot 4.7 binary, run `--headless --import`, and don't expect any `.logs/` from earlier sessions; logs and the save file do not travel.
+2. Ask how the menus and the controller felt, if they have been played. Read the newest log first if there is one.
+3. Then play the arc: two easy wins, buy the shotgun from the Warden and a vest, move up the ladder. The favour and price numbers are the first thing to tune, from the log's `favor` and `purchase` lines.
 
 Open findings:
 
 * The dash has dodged one hit in every logged run put together. Parked until people other than the tester have played; the fallback is a jump and a crouch.
-* The navigation mesh covers the roofs and insides of the corner masses. Harmless so far.
+* Favour from the one real win (The Open Gate, pistol only, x1): Purist 46, Warden 33, Marksman 22, Butcher 6. The Butcher sells the .357 for 160. Unknown what he pays once the player has the shotgun.
+* The Purist pays the most and sells nothing.
+* The shotgun is bracketed high on purpose (16 pellets at 18, scarce shells) to find out what overpowered feels like. It has not been played since it went behind a price.
+* Rifle and .357 have never been fired by a person. Running `arena.tscn` on its own carries all four weapons.
+* Controller: built with no controller plugged in. No aim assist, and the prompts still name keys.
 * The player starts 2 m from the `EastSouth` spawn booth. Robots do not use a booth within 20 m of the player, but they can once the player has moved off.
 * The .357 kills anything through its weak point. The slice doc wanted heavies killed from the front; a heavy's weak point is on its back, so that is not true yet.
-* The Purist sells nothing, and paid the most favour in the first real win (46).
-* The Butcher paid 6 favour in that win; his .357 costs 160. Unknown what he pays once the player has the shotgun.
+* The navigation mesh covers the roofs and insides of the corner masses. Harmless so far.
+* A quiet player on a survival or scavenger contract may never be found; untested by a person since perception went in.
 
-Next, per the slice doc: play the arc, tune the numbers, then get two people who are not the developer through it.
+After the arc plays through, per the slice doc: get two people who are not the developer through it, then answer its two questions.

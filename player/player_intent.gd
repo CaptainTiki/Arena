@@ -1,6 +1,7 @@
 class_name PlayerIntent
 extends Node
 ## The only place input is read. Everything else asks this node what the player wants.
+## Keyboard, mouse and controller all arrive as the same intents.
 
 var _look_accum: Vector2 = Vector2.ZERO
 var _dash_queued: bool = false
@@ -16,7 +17,13 @@ var _cancel_queued: bool = false
 
 var _accept_queued: bool = false
 var _menu_move: Vector2i = Vector2i.ZERO
+## The direction held in a menu, and how long until it steps again.
+var _menu_held: Vector2i = Vector2i.ZERO
+var _menu_repeat_left: float = 0.0
 
+## Set by the owner, from its data.
+var menu_repeat_delay: float = 0.4
+var menu_repeat_interval: float = 0.12
 ## Off where Escape closes a panel instead of letting go of the mouse.
 var release_mouse_on_cancel: bool = true
 ## On while a menu is up. The mouse is let go to click with, and the movement keys move through the menu.
@@ -24,19 +31,33 @@ var menu_mode: bool = false:
 	set(value):
 		menu_mode = value
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
+		# Whatever is held as the menu opens is not a step through it.
+		_menu_held = _get_menu_held()
+		_menu_repeat_left = menu_repeat_delay
 
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+func _process(delta: float) -> void:
+	if menu_mode:
+		_tick_menu_move(delta)
+	elif is_active() and Input.is_action_just_pressed(&"fire_trigger"):
+		_fire_queued = true
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	# Sticks and triggers send a stream of values, not presses. They are asked about each frame instead.
+	if event is InputEventJoypadMotion:
+		return
 	if menu_mode:
 		_read_menu(event)
 		return
 	if event.is_action_pressed(&"ui_cancel"):
 		_cancel_queued = true
-		if release_mouse_on_cancel:
+		# Only the keyboard lets go of the mouse; on a controller the same button is the dash.
+		if release_mouse_on_cancel and event is InputEventKey:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 		return
 	if event.is_action_pressed(&"debug_hud"):
@@ -72,20 +93,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		_use_item_queued = true
 
 
-## Held keys repeat, so holding a direction walks down a long list.
 func _read_menu(event: InputEvent) -> void:
 	if event.is_action_pressed(&"ui_cancel"):
 		_cancel_queued = true
 	elif event.is_action_pressed(&"interact") or event.is_action_pressed(&"ui_accept"):
 		_accept_queued = true
-	elif event.is_action_pressed(&"move_forward", true):
-		_menu_move.y -= 1
-	elif event.is_action_pressed(&"move_back", true):
-		_menu_move.y += 1
-	elif event.is_action_pressed(&"move_left", true):
-		_menu_move.x -= 1
-	elif event.is_action_pressed(&"move_right", true):
-		_menu_move.x += 1
+
+
+## Movement keys, arrow keys, the stick and the d-pad all step through a menu.
+## A direction held steps once, waits, then repeats, so holding it walks down a long list.
+func _tick_menu_move(delta: float) -> void:
+	var held: Vector2i = _get_menu_held()
+	if held != _menu_held:
+		_menu_held = held
+		_menu_repeat_left = menu_repeat_delay
+		_menu_move += held
+		return
+	if held == Vector2i.ZERO:
+		return
+	_menu_repeat_left -= delta
+	if _menu_repeat_left <= 0.0:
+		_menu_repeat_left = menu_repeat_interval
+		_menu_move += held
 
 
 ## False while the mouse is released; all intents read as idle.
@@ -104,6 +133,27 @@ func is_sprinting() -> bool:
 	return is_active() and Input.is_action_pressed(&"sprint")
 
 
+func _get_menu_held() -> Vector2i:
+	var held: Vector2i = Vector2i.ZERO
+	if Input.is_action_pressed(&"move_forward") or Input.is_action_pressed(&"ui_up"):
+		held.y -= 1
+	if Input.is_action_pressed(&"move_back") or Input.is_action_pressed(&"ui_down"):
+		held.y += 1
+	if Input.is_action_pressed(&"move_left") or Input.is_action_pressed(&"ui_left"):
+		held.x -= 1
+	if Input.is_action_pressed(&"move_right") or Input.is_action_pressed(&"ui_right"):
+		held.x += 1
+	return held
+
+
+## The look stick, each axis -1.0 to 1.0, right and down positive.
+func get_look_stick() -> Vector2:
+	if not is_active():
+		return Vector2.ZERO
+	return Input.get_vector(&"look_left", &"look_right", &"look_up", &"look_down")
+
+
+## Mouse travel in pixels since last asked.
 func consume_look() -> Vector2:
 	var look: Vector2 = _look_accum
 	_look_accum = Vector2.ZERO

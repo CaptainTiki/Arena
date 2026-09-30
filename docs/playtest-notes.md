@@ -499,3 +499,32 @@ The rest of the slice, built as one push.
 * Prices unchanged: shotgun 35 favour, .357 160. The Warden paid 33 in the first real win, so the shotgun is two easy wins away, or one if he asked for the contract.
 * It fits the other way round too: the Butcher wants kills in quick succession, the shotgun is how you get them, and the .357 is what he pays for them.
 * To watch: the Butcher paid 6 in a pistol-only win. Whether 160 is reachable depends on what he pays once the shotgun is in hand and the contracts carry a multiplier.
+
+## Controller support (2026-09-29, not yet playtested)
+
+Built blind: no controller was plugged in, and nothing about how it feels is known.
+
+| Control | Does |
+|-|-|
+| Left stick | Move. In a menu, step through it |
+| Right stick | Look |
+| Right trigger | Fire |
+| Left bumper, or B | Dash |
+| Left stick click | Sprint |
+| X | Reload |
+| Right bumper | Next weapon |
+| D-pad left, right | Weapon slot 1, slot 2 |
+| D-pad up | Stim |
+| A | Interact, pay cash at a station, choose in a menu |
+| Y | Pay favour at a station |
+| B | Back, in a menu |
+| Back | Debug HUD |
+
+* Keyboard and mouse are unchanged and work alongside it.
+* **Look** turns at 220 degrees a second across and 150 up and down with the stick right over, on a curve that is finer near the middle. All three numbers are in `PlayerData`. There is no aim assist.
+* **The trigger** fires once per pull, past half way. Letting it back out and pulling again fires again.
+* **Menus** take the movement keys, the arrow keys, the left stick and the d-pad. A direction held steps once, waits 0.4 s, then repeats every 0.12 s.
+* **B is the dash and also "back".** Escape still lets go of the mouse in a fight; B does not.
+* **Prompts still name keys.** The HUD and the menus say `[E]`, `[T]`, `[F]` and `W / S` whatever is in the hand.
+* **To watch:** weak points are small, and the pistol is built around hitting them. With a stick and no aim assist that may simply be too hard; if so the choices are aim assist, bigger weak points on a controller, or accepting that the controller favours the shotgun.
+* Tested headless with made-up controller events: left stick walks, right stick turns and looks, a light squeeze does not fire, a pull fires once, the bumpers dash and swap, d-pad picks a slot, X reloads. The whole loop still passes on the keyboard. Not tested: a real controller, stick feel, dead zones, or menus driven by a stick.

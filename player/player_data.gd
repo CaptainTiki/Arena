@@ -24,6 +24,16 @@ extends Resource
 ## Radians of rotation per pixel of mouse travel.
 @export var mouse_sensitivity: float = 0.0022
 @export_range(0.0, 89.0) var max_pitch_degrees: float = 89.0
+## Degrees a second the view turns with the look stick pushed right over.
+@export var stick_yaw_speed: float = 220.0
+@export var stick_pitch_speed: float = 150.0
+## Bends the stick's response: 1.0 is straight, higher is finer near the middle.
+@export var stick_curve: float = 2.0
+
+@export_group("Menus")
+## Holding a direction in a menu starts repeating after this long, then steps this often.
+@export var menu_repeat_delay: float = 0.4
+@export var menu_repeat_interval: float = 0.12
 
 @export_group("Camera")
 @export var base_fov: float = 90.0
