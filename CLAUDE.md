@@ -71,29 +71,28 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 ## Where things stand
 
-As of 2026-09-30, on the laptop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again. Numbers get tuned once the arc has been played.
+As of the end of 2026-09-30, on the laptop; moving back to the desktop. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger and design choices inside the slice doc are made without asking; stop when a decision truly needs the tester, then discuss, commit, go again.
 
-Every system in the slice doc is built. Played so far: perception AI (liked a lot), the kiosk menus (liked), and two wins with the shotgun bought in between. The door, shop, mail and cash-only stations have been played and liked. **Built but not yet played:** the debug kiosk in the base (add cash, add favour, open every contract, reset the save), the scoped rifle, and controller support. Sponsors, pods and rewards are due a full overhaul (names, personalities, triggers), so their numbers are being ignored on purpose until then.
+Played and liked today: the kiosk menus, the door, the shop, mail, cash-only stations with falling prices, the debug kiosk, and the scoped rifle with the .357. **Nothing is built but unplayed except controller support.** Sponsors, pods and rewards are due a full overhaul (brands, agents, personalities, quests, discounts; see the notes from 2026-09-30), so their numbers are being ignored on purpose until then.
 
-The loop as built: start in the base with a pistol and $100. Read the mail and book a contract at the agent's terminal, shop, set the loadout at the locker, then go through the door, which only opens once a contract is booked. Fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. Favour is standing and is never spent: at 35 the Warden mails an offer and the shotgun appears in the shop, the Marksman's rifle at 90, the Butcher's .357 at 160. Cash buys everything: those weapons, vests, stims, a pistol mod, and ammo or health at stations mid-fight, where the price is shown in yellow and falls to half while the shelf sits untouched. Losing a contract a sponsor asked for costs favour with them.
+The loop as built: start in the base with a pistol and $100. Read the mail and book a contract at the agent's terminal, shop, set the loadout at the locker, then go through the door, which only opens once a contract is booked. Fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. Favour is standing and is never spent: at 35 the Warden mails an offer and the shotgun appears in the shop, the Marksman's rifle at 90, the Butcher's .357 at 160. Cash buys everything: those weapons, vests, stims, a pistol mod, and ammo or health at stations mid-fight, where the price is shown in yellow and falls to half while the shelf sits untouched. Losing a contract a sponsor asked for costs favour with them. The debug kiosk in the base adds cash or favour, opens the ladder, or resets the save.
 
-Keys: `E` interact and pay, right mouse aims a weapon that has a scope (the rifle), `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
+Keys: `E` interact and pay, right mouse aims the rifle, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back. The controller layout is in the notes under "Controller support".
 
 Every number in the economy is a placeholder. Nothing has been balanced; the twenty-minute arc has not been played end to end.
 
 ### Start here next session
 
-1. This is a different machine from the one the work was done on. Find its Godot 4.7 binary, run `--headless --import`, and don't expect any `.logs/` from earlier sessions; logs and the save file do not travel.
-2. Ask how the menus and the controller felt, if they have been played. Read the newest log first if there is one.
-3. Then play the arc: two easy wins, buy the shotgun from the Warden and a vest, move up the ladder. The favour and price numbers are the first thing to tune, from the log's `favor` and `purchase` lines.
+1. Different machine again (the desktop). Find its Godot 4.7 binary, run `--headless --import`. The save and `.logs/` do not travel; the desktop's save is from before the shop and mail, and will get its mail on first load.
+2. Next build: **the agent's read** at the terminal. A letter from the agent assembled from pre-written sentences picked by the numbers: an opener from overall mood, a line per sponsor whose favour moved in the last fight, a nudge about owned gear left unused, a line for anything new in the shop, a sign-off. No numbers shown. Placeholder lines for the current four sponsors; the tester's example is in the notes under "The agent's read". Needs the last fight's favour changes and which weapons were fired kept in the save.
+3. Then the sponsor overhaul, from the 2026-09-30 notes, once the read has been played.
 
 Open findings:
 
 * The dash has dodged one hit in every logged run put together. Parked until people other than the tester have played; the fallback is a jump and a crouch.
-* Favour from the one real win (The Open Gate, pistol only, x1): Purist 46, Warden 33, Marksman 22, Butcher 6. The Butcher sells the .357 for 160. Unknown what he pays once the player has the shotgun.
-* The Purist pays the most and sells nothing.
+* Every sponsor offer arrives within three wins; the Warden pays 180 or so for a fight with zones held. Too fast, known, and waits for the overhaul.
 * The shotgun is bracketed high on purpose (16 pellets at 18, scarce shells) to find out what overpowered feels like. It has not been played since it went behind a price.
-* Rifle and .357 have never been fired by a person. Running `arena.tscn` on its own carries all four weapons.
+* Rifle and .357 have each been played once and liked. The rifle is helpless up close; whether the other slot should cover that is a slot question. Running `arena.tscn` on its own carries all four weapons.
 * Controller: built with no controller plugged in. No aim assist, and the prompts still name keys.
 * The player starts 2 m from the `EastSouth` spawn booth. Robots do not use a booth within 20 m of the player, but they can once the player has moved off.
 * The .357 kills anything through its weak point. The slice doc wanted heavies killed from the front; a heavy's weak point is on its back, so that is not true yet.
