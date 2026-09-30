@@ -610,3 +610,41 @@ Built blind: no controller was plugged in, and nothing about how it feels is kno
 **Log:** `contract_booked` no longer lists the loadout; `arena_enter` does, at the door. `base_enter` lists unread mail. New: `mail_read`. `purchase` has no favour field.
 
 **Tested headless:** mail arriving on a favour level, on a lost request, on a rival's request and with a gift; the shop refusing a weapon not yet offered and selling it after; favour untouched by buying; mail surviving a reload and not arriving twice; the locked door doing nothing; booking not starting the fight; the door starting the booked fight; a station's price at $20, at $15 after 45 s, stopping at half, back to full after a restock, and the purchase charging the lowered price. Not tested: anything seen, including where the door sits, whether the yellow price reads from a distance, and how the mail reads in the panel.
+
+## Notes for the sponsor overhaul (2026-09-30, nothing built)
+
+From the tester, to be picked up when the overhaul starts.
+
+* **A sponsor is an agent working for a company brand,** not a lone character. The person who writes the mail represents, say, the weapons company that builds the .357.
+* **The company wants to see its product used.** Kills with their weapon raise favour; single-shot kills raise it more.
+* **Using a rival company's weapon may lower favour.**
+* **They ask for missions as favour bonuses,** such as "use only the .357 for 5 minutes" or "two rounds of First Blood with it".
+* What this changes from today: favour would come from which weapon is used and how, not from play style (headshots, chains, untouched, zones). A contract request becomes a condition on how the fight is fought, not just which contract is taken.
+
+**Refined the same day:**
+
+* **Everybody is happier when you do well,** whatever you carry. Everybody can be flat or negative when you fail, scaled by how it went.
+* **Using a company's own equipment and succeeding pays more** with that company. It is a bonus on top, not the only source.
+* **Negatives are specific,** not general: a rival company's product, not just "anything that isn't ours".
+* **The starter weapon is generic,** with no brand, so it angers nobody.
+* **Agents hand out quests:** "use this the next time you do that". Completing one pays a bonus.
+* **The agent does well when you do well.** As they get happier they send shop unlocks and discounts on their own products, to keep you using their stuff.
+* **Sponsors are how the game progresses,** so they have to be mysterious, easy to figure out, and complex all at once, or the progression is not fun.
+* This answers the first-weapon problem: favour comes from doing well with anything, so nobody needs a company's weapon before they can earn that company's favour.
+
+**The agent's read (same day, nothing built):**
+
+* **The agent gives a read on your last few runs,** available every time you are in the base. It shows no numbers; it hides them in conversation.
+* The tester's example: "Hey killer! Joe here, your agent! You're really making me a happy man today! The WeaponX guy called me, said they were really happy with that last fight in the Crossroads arena! Although BrandB sent me a nastygram, something about not using that shotgun they gave you access to? Might be a bonus in it for you if you bring that up next run. Monsta Energy Drank said next run they want to give you a taste of their Boost Drank; you should see a free voucher in the store. Have a good one, Champ!"
+* **How it is made:** sentences are written ahead of time and picked by the numbers. An opener from overall mood, a line per sponsor whose favour moved, a line for owned gear left unused, a line for anything new in the shop, a sign-off.
+* This is the "explained afterwards" layer: the player never sees why favour moved as a number, but the agent always tells them.
+
+## Door, shop, mail, cash-only stations, playtest (2026-09-30, The Warden's Errand)
+
+* **Liked a lot better.** Mail feels good to read and then see the change in the shop. The door and booking work the way that was wanted. "All of it really is what we wanted."
+* **Log:** won The Warden's Errand (tier 2, x1.5, asked for by the Butcher) in 4:32 with 41 kills, pistol and shotgun. 94 trigger pulls, 14 of them shotgun. Hit three times. One station purchase, ammo at $10, the lowest price.
+* **Mail on the old save worked:** the welcome, the Warden's offer and the Purist's gift were waiting, and were read before the fight.
+* **Favour from the win:** Warden 180, Purist 141, Butcher 138 (doubled, he asked), Marksman 78. That put the Marksman at 151 and the Butcher at exactly 160, so the rifle and the .357 offers both arrived after the third win of the save.
+* **Cash is now what gates the weapons.** Came back with $1180, bought the rifle ($600) and the extended mag ($350), left with $230. The .357 is on offer at $900 and not affordable yet.
+* **Every sponsor offer has now arrived after three wins.** Thresholds are placeholders and wait for the overhaul.
+* Not yet tried by the tester in a fight: the rifle, the .357, a lost request, the jealous mail.
