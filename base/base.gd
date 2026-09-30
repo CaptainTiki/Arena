@@ -1,6 +1,7 @@
 class_name Base
 extends Node3D
-## The room between fights. Walk up to a kiosk, press the key, read the panel, pick by number.
+## The room between fights. Walk up to a kiosk, press the key, and a menu comes up:
+## move through it with the movement keys or the mouse, choose with the key or a click.
 ## Everything bought, worn or booked here goes through the locker.
 
 signal contract_booked(contract: ContractData)
@@ -9,15 +10,18 @@ signal contract_booked(contract: ContractData)
 ## Where favour, cash and everything owned are kept.
 @export var profile_path: String = "user://profile.cfg"
 
+@export_group("Menu Colours")
+@export var heading_color: Color = Color(1.0, 1.0, 1.0, 0.6)
+@export var owned_color: Color = Color(0.6, 1.0, 0.6)
+@export var request_color: Color = Color(1.0, 0.85, 0.2)
+
 var _locker: Locker
 var _kiosks: Array[Kiosk] = []
-## The kiosk whose panel is up, or null.
+## The kiosk whose menu is up, or null.
 var _open: Kiosk
-## What each number on the panel does, in the order they are listed.
-var _options: Array[Callable] = []
 ## The contract whose card is up on the terminal, or null.
 var _card: ContractData
-## The last thing that happened at this kiosk, shown at the foot of the panel.
+## The last thing that happened at this kiosk, shown at the foot of the menu.
 var _message: String = ""
 
 @onready var _player: Player = $Player
@@ -37,6 +41,7 @@ func _ready() -> void:
 	for child: Node in _kiosks_root.get_children():
 		if child is Kiosk:
 			_kiosks.append(child as Kiosk)
+	_panel.entry_clicked.connect(_choose)
 	_prompt.text = ""
 	_log.open_session()
 	_log.log_world("base_enter", _describe_wallet())
@@ -47,23 +52,52 @@ func get_locker() -> Locker:
 
 
 func _process(_delta: float) -> void:
-	# Read every frame so nothing pressed in one place is acted on in another.
-	var interact: bool = _intent.consume_interact()
-	var cancel: bool = _intent.consume_cancel()
-	var digit: int = _intent.consume_digit()
 	if _open != null:
-		if interact or cancel:
-			_close()
-		elif digit >= 0 and digit < _options.size():
-			_options[digit].call()
-			if _open != null:
-				_build()
+		_tick_menu()
 		return
-
+	# Read every frame so a press made away from a kiosk is not acted on at one.
+	var interact: bool = _intent.consume_interact()
+	_intent.consume_cancel()
 	var near: Kiosk = _get_near_kiosk()
 	_prompt.text = "" if near == null else "[E] %s" % near.title
 	if near != null and interact:
 		_open_kiosk(near)
+
+
+func _tick_menu() -> void:
+	var move: Vector2i = _intent.consume_menu_move()
+	var accept: bool = _intent.consume_accept()
+	if _intent.consume_cancel():
+		_step_back()
+		return
+	# More than one step can arrive in a frame.
+	for step: int in absi(move.y):
+		_panel.move(signi(move.y))
+	var picked: MenuEntry = _panel.get_picked()
+	if picked == null:
+		return
+	if move.x != 0 and picked.nudge.is_valid():
+		picked.nudge.call(signi(move.x))
+		_build()
+	elif accept:
+		_choose(picked)
+
+
+## Out of a contract card to the board, or out of the menu altogether.
+func _step_back() -> void:
+	if _card != null:
+		_show_card(null)
+		_build()
+	else:
+		_close()
+
+
+func _choose(entry: MenuEntry) -> void:
+	if not entry.action.is_valid():
+		return
+	entry.action.call()
+	if _open != null:
+		_build()
 
 
 func _get_near_kiosk() -> Kiosk:
@@ -85,140 +119,172 @@ func _open_kiosk(kiosk: Kiosk) -> void:
 	_card = null
 	_message = ""
 	_prompt.text = ""
-	# The player stands still while reading; the intent keeps listening.
+	# The player stands still while the menu is up; the intent keeps listening.
 	_player.process_mode = Node.PROCESS_MODE_DISABLED
 	_intent.process_mode = Node.PROCESS_MODE_ALWAYS
+	_intent.menu_mode = true
 	_build()
 
 
 func _close() -> void:
 	_open = null
 	_card = null
-	_options.clear()
 	_panel.close()
+	_intent.menu_mode = false
 	_player.process_mode = Node.PROCESS_MODE_INHERIT
 	_intent.process_mode = Node.PROCESS_MODE_INHERIT
 
 
 func _build() -> void:
-	_options.clear()
-	var lines: PackedStringArray = [_open.title, "You have  %s" % _locker.get_wallet_text(), ""]
+	var entries: Array[MenuEntry] = []
+	var title: String = _open.title
 	match _open.kind:
 		Kiosk.Kind.WEAPON_RACK:
-			_list_weapon_rack(lines)
+			_list_weapon_rack(entries)
 		Kiosk.Kind.WARDROBE:
-			_list_wardrobe(lines)
+			_list_wardrobe(entries)
 		Kiosk.Kind.TERMINAL:
-			_list_terminal(lines)
+			if _card == null:
+				_list_contracts(entries)
+			else:
+				title = _card.display_name
+				_list_card(entries)
 		Kiosk.Kind.SPONSOR_BOARD:
-			_list_sponsor_board(lines)
-	lines.append("")
-	if not _message.is_empty():
-		lines.append(_message)
-	lines.append("Press a number to choose.   [E] or [Esc] to step away.")
-	_panel.show_text("\n".join(lines))
+			_list_sponsor_board(entries)
+	entries.append(MenuEntry.heading(""))
+	entries.append(MenuEntry.option("Step away", "", "Back to the room.", _close))
+	_panel.show_menu(title, _locker.get_wallet_text(), entries, _message)
 
 
-## Adds a numbered line. Past nine there are no more keys, so the rest are listed without a number.
-func _add_option(lines: PackedStringArray, text: String, action: Callable) -> void:
-	if _options.size() >= 9:
-		lines.append("      %s" % text)
-		return
-	_options.append(action)
-	lines.append("[%d]  %s" % [_options.size(), text])
-
-
-## Lists something for sale: a numbered line if it can be bought now, a plain one saying why not otherwise.
-func _list_for_sale(lines: PackedStringArray, item: ItemData) -> void:
+## Something for sale. It can always be picked out and read; choosing it when it can't be bought says why.
+func _make_sale(item: ItemData) -> MenuEntry:
 	var refusal: String = _locker.get_refusal(item)
-	var label: String = "%s   %s   %s" % [item.display_name, item.get_price_text(), item.description]
+	var about: String = "%s\n\nCosts %s." % [item.description, item.get_price_text()]
 	if item.stack_limit > 1:
-		label += "   (have %d of %d)" % [_locker.count_owned(item), item.stack_limit]
-	if refusal.is_empty():
-		_add_option(lines, "Buy %s" % label, _buy.bind(item))
-	else:
-		lines.append("      %s   (%s)" % [label, refusal])
+		about += "\nYou have %d of %d." % [_locker.count_owned(item), item.stack_limit]
+	if not refusal.is_empty():
+		about += "\n\nNot now: %s." % refusal
+	return MenuEntry.option(
+			"Buy  %s" % item.display_name, item.get_price_text(), about, _buy.bind(item), refusal.is_empty())
 
 
-func _list_weapon_rack(lines: PackedStringArray) -> void:
+func _make_owned(item: ItemData, state: String) -> MenuEntry:
+	var entry: MenuEntry = MenuEntry.option(item.display_name, state, item.description, Callable())
+	entry.color = owned_color
+	return entry
+
+
+func _list_weapon_rack(entries: Array[MenuEntry]) -> void:
+	entries.append(MenuEntry.heading("CARRIED INTO THE FIGHT", heading_color))
 	for slot: int in Locker.WEAPON_SLOTS:
 		var held: ItemData = _locker.get_weapon_in(slot)
-		lines.append("SLOT %d:  %s" % [slot + 1, "empty" if held == null else held.display_name])
-	lines.append("")
-	for slot: int in Locker.WEAPON_SLOTS:
-		for item: ItemData in catalog.get_items_in(ItemData.Category.WEAPON):
-			if _locker.owns(item) and _locker.get_weapon_slot(item) != slot:
-				_add_option(lines, "Slot %d: carry the %s" % [slot + 1, item.display_name],
-						_carry.bind(slot, item))
-	lines.append("")
-	lines.append("Weapons are bought from the sponsors, at the sponsor board.")
-	lines.append("")
-	lines.append("MODS")
+		var about: String = "Nothing in this slot." if held == null else held.description
+		about += "\n\nChoose, or press A or D, to change what this slot carries."
+		if _get_owned_weapons().size() < 2:
+			about += "\n\nYou own one weapon. The sponsors sell more, for favour, at the sponsor board."
+		var entry: MenuEntry = MenuEntry.option(
+				"Slot %d" % (slot + 1), "<  %s  >" % ("empty" if held == null else held.display_name),
+				about, _cycle_weapon.bind(slot, 1))
+		entry.nudge = _nudge_weapon.bind(slot)
+		entries.append(entry)
+	entries.append(MenuEntry.heading(""))
+	entries.append(MenuEntry.heading("MODS", heading_color))
 	for item: ItemData in catalog.get_items_in(ItemData.Category.MOD):
-		if _locker.owns(item):
-			lines.append("      %s   fitted" % item.display_name)
-		else:
-			_list_for_sale(lines, item)
+		entries.append(_make_owned(item, "fitted") if _locker.owns(item) else _make_sale(item))
 
 
-func _list_wardrobe(lines: PackedStringArray) -> void:
+func _list_wardrobe(entries: Array[MenuEntry]) -> void:
 	var worn: ItemData = _locker.get_vest()
-	lines.append("WEARING:  %s" % ("no vest" if worn == null else worn.display_name))
-	var pocket: ItemData = _locker.get_pocket()
-	lines.append("POCKET:  %s" % ("empty" if pocket == null else pocket.display_name))
-	lines.append("")
+	entries.append(MenuEntry.heading("VESTS", heading_color, "wearing: %s" % (
+			"none" if worn == null else worn.display_name)))
 	for item: ItemData in catalog.get_items_in(ItemData.Category.VEST):
 		if not _locker.owns(item):
-			_list_for_sale(lines, item)
+			entries.append(_make_sale(item))
 		elif item == worn:
-			_add_option(lines, "Take off the %s" % item.display_name, _wear.bind(null))
+			var entry: MenuEntry = MenuEntry.option(
+					"Take off  %s" % item.display_name, "worn", item.description, _wear.bind(null))
+			entry.color = owned_color
+			entries.append(entry)
 		else:
-			_add_option(lines, "Wear the %s   %s" % [item.display_name, item.description], _wear.bind(item))
-	lines.append("")
+			entries.append(MenuEntry.option(
+					"Wear  %s" % item.display_name, "owned", item.description, _wear.bind(item)))
+	entries.append(MenuEntry.heading(""))
+	var pocket: ItemData = _locker.get_pocket()
+	entries.append(MenuEntry.heading("POCKET", heading_color, "holding: %s" % (
+			"nothing" if pocket == null else pocket.display_name)))
 	for item: ItemData in catalog.get_items_in(ItemData.Category.CONSUMABLE):
-		_list_for_sale(lines, item)
+		entries.append(_make_sale(item))
 
 
-func _list_terminal(lines: PackedStringArray) -> void:
-	if _card != null:
-		lines.append(_card.get_card(_locker.get_request_for(_card)))
-		lines.append("")
-		_add_option(lines, "Take the contract", _book.bind(_card))
-		_add_option(lines, "Back to the board", _show_card.bind(null))
-		return
+func _list_contracts(entries: Array[MenuEntry]) -> void:
+	entries.append(MenuEntry.heading("CONTRACTS ON OFFER", heading_color))
 	for contract: ContractData in catalog.contracts:
-		var label: String = "%s   tier %d   %s   pays $%d   favour x%s" % [
-				contract.display_name, contract.tier, contract.get_type_name(), contract.cash_reward,
-				String.num(contract.favour_multiplier, 1)]
 		var asked_by: SponsorData = _locker.get_request_for(contract)
+		var open: bool = _locker.is_unlocked(contract)
+		var about: String = contract.get_card(asked_by)
+		if not open:
+			about += "\n\nLocked. Win a tier %d contract first." % contract.unlocked_by
+		var entry: MenuEntry = MenuEntry.option(
+				"Tier %d   %s" % [contract.tier, contract.display_name],
+				"$%d   x%s" % [contract.cash_reward, String.num(contract.favour_multiplier, 1)],
+				about, _show_card.bind(contract), open)
 		if asked_by != null:
-			label += "   ** %s ASKS FOR THIS: DOUBLE FAVOUR **" % asked_by.display_name
-		if _locker.is_unlocked(contract):
-			_add_option(lines, label, _show_card.bind(contract))
-		else:
-			lines.append("      %s   (locked: win a tier %d contract)" % [label, contract.unlocked_by])
-		lines.append("            %s" % contract.get_enemy_summary())
+			entry.color = request_color
+			entry.note = "%s asks   %s" % [asked_by.display_name.trim_prefix("THE "), entry.note]
+		entries.append(entry)
 
 
-func _list_sponsor_board(lines: PackedStringArray) -> void:
+func _list_card(entries: Array[MenuEntry]) -> void:
+	var about: String = _card.get_card(_locker.get_request_for(_card))
+	var loadout: Loadout = _locker.build_loadout()
+	var carrying: PackedStringArray = []
+	for weapon: WeaponData in loadout.weapons:
+		carrying.append(weapon.display_name)
+	about += "\n\nYou are carrying: %s.\nVest: %s.   Pocket: %s." % [
+			", ".join(carrying),
+			"none" if loadout.vest == null else loadout.vest.display_name,
+			"empty" if loadout.consumable == null else loadout.consumable.display_name]
+	entries.append(MenuEntry.option("Take the contract", "", about, _book.bind(_card)))
+	entries.append(MenuEntry.option("Back to the board", "", about, _show_card.bind(null)))
+
+
+func _list_sponsor_board(entries: Array[MenuEntry]) -> void:
 	for sponsor: SponsorData in catalog.sponsors:
-		lines.append("%s   favour %d   wants: %s" % [
-				sponsor.display_name, _locker.get_favour(sponsor), sponsor.wants])
-		var selling: Array[ItemData] = catalog.get_items_sold_by(sponsor)
-		if selling.is_empty():
-			lines.append("      nothing for sale yet")
-		for item: ItemData in selling:
-			if _locker.owns(item):
-				lines.append("      %s   owned" % item.display_name)
-			else:
-				_list_for_sale(lines, item)
-		lines.append("")
-	lines.append("Favour is paid when a contract is won, and only then.")
+		entries.append(MenuEntry.heading(
+				"%s   wants %s" % [sponsor.display_name, sponsor.wants], sponsor.color,
+				"favour %d" % _locker.get_favour(sponsor)))
+		for item: ItemData in catalog.get_items_sold_by(sponsor):
+			entries.append(_make_owned(item, "owned") if _locker.owns(item) else _make_sale(item))
+
+
+func _get_owned_weapons() -> Array[ItemData]:
+	var owned: Array[ItemData] = []
+	for item: ItemData in catalog.get_items_in(ItemData.Category.WEAPON):
+		if _locker.owns(item):
+			owned.append(item)
+	return owned
+
+
+## A nudge hands over its step first and what was bound after it.
+func _nudge_weapon(step: int, slot: int) -> void:
+	_cycle_weapon(slot, step)
+
+
+## Puts the next owned weapon, or the one before, in `slot`. One already in the other slot swaps over.
+func _cycle_weapon(slot: int, step: int) -> void:
+	var owned: Array[ItemData] = _get_owned_weapons()
+	if owned.size() < 2:
+		_message = "Nothing else to carry yet."
+		return
+	var index: int = owned.find(_locker.get_weapon_in(slot))
+	var next: ItemData = owned[posmod(index + step, owned.size())]
+	_locker.set_weapon_in(slot, next)
+	_message = "Slot %d carries the %s." % [slot + 1, next.display_name]
 
 
 func _buy(item: ItemData) -> void:
 	if not _locker.buy(item):
-		_message = "Could not buy the %s: %s." % [item.display_name, _locker.get_refusal(item)]
+		_message = "Can't buy the %s: %s." % [item.display_name, _locker.get_refusal(item)]
 		return
 	_message = "Bought the %s." % item.display_name
 	var entry: Dictionary = _describe_wallet()
@@ -228,19 +294,18 @@ func _buy(item: ItemData) -> void:
 	_log.log_world("purchase", entry)
 
 
-func _carry(slot: int, item: ItemData) -> void:
-	_locker.set_weapon_in(slot, item)
-	_message = "The %s goes in slot %d." % [item.display_name, slot + 1]
-
-
 func _wear(item: ItemData) -> void:
 	_locker.set_vest(item)
 	_message = "No vest." if item == null else "Wearing the %s." % item.display_name
 
 
 func _show_card(contract: ContractData) -> void:
+	if contract != null and not _locker.is_unlocked(contract):
+		_message = "Locked. Win a tier %d contract first." % contract.unlocked_by
+		return
 	_card = contract
 	_message = ""
+	_panel.reset_pick()
 
 
 func _book(contract: ContractData) -> void:

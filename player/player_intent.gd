@@ -13,10 +13,17 @@ var _interact_queued: bool = false
 var _interact_alt_queued: bool = false
 var _use_item_queued: bool = false
 var _cancel_queued: bool = false
-var _digit_queued: int = -1
+
+var _accept_queued: bool = false
+var _menu_move: Vector2i = Vector2i.ZERO
 
 ## Off where Escape closes a panel instead of letting go of the mouse.
 var release_mouse_on_cancel: bool = true
+## On while a menu is up. The mouse is let go to click with, and the movement keys move through the menu.
+var menu_mode: bool = false:
+	set(value):
+		menu_mode = value
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if value else Input.MOUSE_MODE_CAPTURED
 
 
 func _ready() -> void:
@@ -24,6 +31,9 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if menu_mode:
+		_read_menu(event)
+		return
 	if event.is_action_pressed(&"ui_cancel"):
 		_cancel_queued = true
 		if release_mouse_on_cancel:
@@ -37,11 +47,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		if event is InputEventMouseButton and event.pressed:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		return
-
-	if event is InputEventKey and event.pressed and not event.echo:
-		var key: Key = (event as InputEventKey).physical_keycode
-		if key >= KEY_1 and key <= KEY_9:
-			_digit_queued = key - KEY_1
 
 	if event is InputEventMouseMotion:
 		_look_accum += (event as InputEventMouseMotion).screen_relative
@@ -65,6 +70,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		_interact_alt_queued = true
 	elif event.is_action_pressed(&"use_item"):
 		_use_item_queued = true
+
+
+## Held keys repeat, so holding a direction walks down a long list.
+func _read_menu(event: InputEvent) -> void:
+	if event.is_action_pressed(&"ui_cancel"):
+		_cancel_queued = true
+	elif event.is_action_pressed(&"interact") or event.is_action_pressed(&"ui_accept"):
+		_accept_queued = true
+	elif event.is_action_pressed(&"move_forward", true):
+		_menu_move.y -= 1
+	elif event.is_action_pressed(&"move_back", true):
+		_menu_move.y += 1
+	elif event.is_action_pressed(&"move_left", true):
+		_menu_move.x -= 1
+	elif event.is_action_pressed(&"move_right", true):
+		_menu_move.x += 1
 
 
 ## False while the mouse is released; all intents read as idle.
@@ -150,8 +171,15 @@ func consume_cancel() -> bool:
 	return queued
 
 
-## A number key from 1 to 9, counting from zero, or -1 for none. For picking from a list.
-func consume_digit() -> int:
-	var queued: int = _digit_queued
-	_digit_queued = -1
+## Steps through a menu since last asked: x is left and right, y is up (negative) and down.
+func consume_menu_move() -> Vector2i:
+	var move: Vector2i = _menu_move
+	_menu_move = Vector2i.ZERO
+	return move
+
+
+## The picked-out line of a menu was chosen from the keyboard.
+func consume_accept() -> bool:
+	var queued: bool = _accept_queued
+	_accept_queued = false
 	return queued

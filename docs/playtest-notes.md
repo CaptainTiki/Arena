@@ -462,3 +462,40 @@ The rest of the slice, built as one push.
 * Walls of text on the panels wrap but are not laid out. Ugly on purpose, as asked.
 
 **Tested headless:** the whole loop through `Game` (buy the shotgun for favour, buy and wear a vest, buy a stim, book, fight carrying what was set, use the stim, win, get paid, land back in the base with tier 2 open); a station sale and a refusal; a loss paying nothing; the ramp stalling. Not tested: anything seen or heard, the feel of the rifle and the .357, and whether the prices make a twenty-minute arc.
+
+## Whole loop, first play (2026-09-29, The Open Gate, pistol only)
+
+* **Looking good so far.** Asked for the panels to be menus, not text on a screen: move with WASD (ready for a controller later) and click with the mouse.
+* **Log:** won in 2:44 with 14 kills, 50 shots, 13 weak-point hits. Bought ammo once ($20) and health once ($40); finished with $240.
+* **Favour from a real win,** at x1 with nobody asking:
+
+| Sponsor | Score | Favour |
+|-|-|-|
+| Marksman | 14.8 | 22 |
+| Butcher | 3.0 | 6 |
+| Purist | 115.6 | 46 |
+| Warden | 33.0 | 33 |
+
+* **The Butcher pays too little for what he sells.** At 6 a fight the 35-favour shotgun is six easy wins away, and the slice wants it after two or three. Careful play means killing one at a time, which is the opposite of what he scores. Left alone for now; numbers are tuned once the arc has been played.
+* **The Purist pays the most and sells nothing.**
+
+## Kiosk menus (2026-09-29, not yet playtested)
+
+* A kiosk now opens a menu: a list on the left, and on the right what the picked-out line is about. Prices and states sit at the right of each line. The wallet is at the top right.
+* **Keys:** `W` `S` move, holding repeats. `E`, `Enter` or `Space` chooses. `Esc` goes back: from a contract card to the board, otherwise out. `A` `D` change a weapon slot.
+* **Mouse:** free while a menu is up. Hovering picks a line out, clicking chooses it. Captured again when the menu closes.
+* Things that can't be bought are greyed but can still be picked out and read; the right-hand side says what is missing, and choosing one says so again at the foot.
+* The weapon rack is two slot lines that cycle through what is owned, in place of a line per weapon per slot.
+* The terminal shows each contract's full card beside the list as it is picked out. Choosing one still goes to a confirm step, which also lists what you are carrying.
+* Number keys no longer choose. Every menu ends with "Step away".
+* Built from 16 rows authored in the panel scene; a longer list would be cut off, with a warning.
+* For a controller later: the menu listens to the same actions as movement and interact, so adding stick and button events to those actions in the input map is all it needs.
+* **Bug found by the headless test and fixed before play:** `A` or `D` on a weapon slot emptied it.
+* Tested headless: opening, moving, choosing, a click on a row, `A` on a slot, a locked contract refusing, `Esc` from the card and from the menu, then the whole loop through to being paid. Not tested: how it looks, hovering, and real mouse clicks.
+
+## Shotgun moves to the Warden (2026-09-29, not yet playtested)
+
+* **Decision by the tester:** swap the two. The Warden sells the shotgun and the Butcher sells the .357. Holding a zone is the thing a new player has the most control over in the first couple of fights, so that is where the first weapon should come from.
+* Prices unchanged: shotgun 35 favour, .357 160. The Warden paid 33 in the first real win, so the shotgun is two easy wins away, or one if he asked for the contract.
+* It fits the other way round too: the Butcher wants kills in quick succession, the shotgun is how you get them, and the .357 is what he pays for them.
+* To watch: the Butcher paid 6 in a pistol-only win. Whether 160 is reachable depends on what he pays once the shotgun is in hand and the contracts carry a multiplier.

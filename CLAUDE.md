@@ -29,7 +29,7 @@ Read `docs/playtest-notes.md` first. It is the running record of every playtest,
 | Folder | Holds |
 |-|-|
 | `game/` | `Game` (the spine): swaps the base and the fight |
-| `base/` | `Base` (the room between fights), `Kiosk`, `KioskPanel` |
+| `base/` | `Base` (the room between fights), `Kiosk`, `KioskPanel` (the menu), `MenuRow`, `MenuEntry` |
 | `arena/` | `Arena` (one fight), `Level`, blocks, hold zones, stations (vending machines), spawn booths |
 | `player/`, `weapon/` | Player, intent, pistol, shotgun, rifle, .357 (one `Weapon` script, `WeaponData` sets pellets and spread) |
 | `item/` | `ItemData` and everything that can be owned: weapons, vests, the stim, mods |
@@ -55,7 +55,8 @@ Test scripts extend `SceneTree`. Things that have bitten before:
 * `arena.tscn` on its own fights `default_contract` (or `debug_contract`) carrying all four weapons. Through `game.tscn` it carries the loadout in the save.
 * On its own, the arena reloads itself after the summary. A reloaded scene loses exports set on the instance, so it is back on the real profile and log folder.
 * Fire with `player.get_weapon()`, not a weapon reference taken at the start; the weapon in hand changes.
-* Press keys with `Input.parse_input_event`: an `InputEventAction` for an action, an `InputEventKey` with `physical_keycode` for a panel's number keys.
+* Press keys with `Input.parse_input_event` and an `InputEventAction`, and send the release straight after. A movement action left pressed walks the player away once the menu closes.
+* Click a menu row by emitting `pressed` on its `Button`.
 * Hitstop is timed in real milliseconds. Headless runs faster than real time, so a kill slows many frames of game time; fights take longer on the frame count than on the log's clock.
 * The navigation map is empty for the first tick or two. The spawner waits for it; a test that places things itself must too.
 * No test scripts are kept in the repo. Write them in a scratch folder.
@@ -68,11 +69,11 @@ Every session writes one JSON-lines file to `.logs/` at the project root (ignore
 
 As of 2026-09-29. The plan is `docs/vertical-slice-kickoff.md`: twenty minutes of the whole loop, greybox. For the slice, batches can be bigger; stop when a decision needs the tester.
 
-Every system in the slice doc is built. The last push (economy, loadout, ladder, booths, base) is **not yet played or committed**. Perception AI has been played and liked.
+Every system in the slice doc is built and has been played once (The Open Gate, won, pistol only). The kiosk menus that replaced the text panels are **not yet played or committed**.
 
-The loop as built: start in the base with a pistol and $100. Book a contract at the agent's terminal, fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. The Butcher sells the shotgun, the Marksman the rifle, the Warden the .357, all for favour. Cash buys vests, stims, a pistol mod, and ammo or health at stations mid-fight.
+The loop as built: start in the base with a pistol and $100. Book a contract at the agent's terminal, fight, get paid on a win, come back. Favour with each sponsor comes from what they scored in the fight, times the contract's multiplier, doubled for the sponsor who asked for that contract. The Warden sells the shotgun, the Marksman the rifle, the Butcher the .357, all for favour. Cash buys vests, stims, a pistol mod, and ammo or health at stations mid-fight.
 
-Keys: `E` interact and pay cash, `T` pay favour, `F` stim, `1` `2` `Q` wheel for weapons, number keys on panels, `~` debug HUD.
+Keys: `E` interact and pay cash, `T` pay favour, `F` stim, `1` `2` `Q` wheel for weapons, `~` debug HUD. In a menu: `W` `S` move, `A` `D` change, `E` or a click chooses, `Esc` goes back.
 
 Every number in the economy is a placeholder. Nothing has been balanced; the twenty-minute arc has not been played end to end.
 
@@ -82,6 +83,7 @@ Open findings:
 * The navigation mesh covers the roofs and insides of the corner masses. Harmless so far.
 * The player starts 2 m from the `EastSouth` spawn booth. Robots do not use a booth within 20 m of the player, but they can once the player has moved off.
 * The .357 kills anything through its weak point. The slice doc wanted heavies killed from the front; a heavy's weak point is on its back, so that is not true yet.
-* The Purist sells nothing.
+* The Purist sells nothing, and paid the most favour in the first real win (46).
+* The Butcher paid 6 favour in that win; his .357 costs 160. Unknown what he pays once the player has the shotgun.
 
 Next, per the slice doc: play the arc, tune the numbers, then get two people who are not the developer through it.
